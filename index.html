@@ -866,7 +866,7 @@ function render(){
   };
   destroyCharts();
   v.innerHTML = (map[state.view]||viewDashboard)();
-  const hook = { dashboard:hookDashboard, reports:hookReports }[state.view];
+  const hook = { dashboard:hookDashboard, reports:hookReports, settings:hookSettings }[state.view];
   if(hook){ try{ hook(); }catch(e){ console.warn('chart hook failed', e); } }
 }
 
@@ -1958,7 +1958,7 @@ function viewSettings(){
   </div>
 
   <div class="section-head"><h3>Date & backup</h3><div class="line"></div></div>
-  <div class="set-group">
+  ${canManageData()?`<div class="set-group">
     <div class="set-row">
       <div class="set-ic">${ic('<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>')}</div>
       <div class="set-meta"><div class="set-title">Export backup</div><div class="set-desc">Salvează tot într-un fișier JSON</div></div>
@@ -1971,10 +1971,12 @@ function viewSettings(){
     </div>
     <div class="set-row">
       <div class="set-ic">${ic('<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>')}</div>
-      <div class="set-meta"><div class="set-title">Șterge datele demo</div><div class="set-desc">Pornește curat, păstrând setările</div></div>
+      <div class="set-meta"><div class="set-title">Șterge datele</div><div class="set-desc">Pornește curat de la 0 (golește tot)</div></div>
       <button class="btn sm" data-action="cleardemo">Golește</button>
     </div>
-  </div>
+  </div>`:`<div class="ai-card warn"><div class="ai-ic">${ic('<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>')}</div>
+    <div style="flex:1"><h4>Acces restricționat</h4><p>Export, import și ștergerea datelor sunt disponibile doar creatorului familiei. Cere-i acces din „Cont & sincronizare” dacă ai nevoie.</p></div>
+  </div>`}
 
   <div class="section-head"><h3>Instalare</h3><div class="line"></div></div>
   <div class="ai-card tip">
@@ -2594,7 +2596,7 @@ function setActiveAmong(btn,attr){
 function removePin(){ DB.settings.pin=null; saveDB(); render(); toast('PIN eliminat'); }
 
 document.addEventListener('click', e=>{
-  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter]');
+  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess]');
   if(!t) return;
   const d=t.dataset;
 
@@ -2618,6 +2620,7 @@ document.addEventListener('click', e=>{
   if(d.delloan){ delEntity('loan', d.delloan); return; }
   if(d.loanpay){ openLoanPay(d.loanpay); return; }
   if(d.loanfilter){ state.loanFilter=d.loanfilter; render(); return; }
+  if(d.dataaccess){ toggleDataAccess(d.dataaccess); return; }
   if(d.loandir){ state.form.dir=d.loandir;
     $$('#loanDirSeg [data-loandir]').forEach(b=>b.classList.toggle('active', b===t));
     const lbl=$('#lPersonLbl'); if(lbl) lbl.textContent = d.loandir==='lent'?'Cui i-ai dat':'De la cine ai împrumutat';
@@ -2653,11 +2656,12 @@ document.addEventListener('click', e=>{
       case 'savefamily': saveFamily(); break;
       case 'setpin': case 'changepin': showLock('set'); break;
       case 'removepin': removePin(); break;
-      case 'import': doImport(); break;
-      case 'cleardemo': clearDemo(); break;
+      case 'import': if(!canManageData()){ toast('Doar creatorul familiei poate importa date','err'); break; } doImport(); break;
+      case 'cleardemo': if(!canManageData()){ toast('Doar creatorul familiei poate șterge datele','err'); break; } clearDemo(); break;
       case 'logout': if(Cloud.auth){ Cloud.auth.signOut(); toast('Deconectat'); } break;
       case 'copycode': if(Cloud.inviteCode) copyText(Cloud.inviteCode,'Cod copiat'); break;
       case 'removemember': removeMember(d.uid); break;
+      case 'loadadmin': loadAdmin(); break;
       case 'showlogin':
         Store.del('casa_local_mode');
         if(typeof firebase==='undefined'){ toast('Fără conexiune la internet — reîncearcă','err'); }
@@ -2704,10 +2708,19 @@ const FIREBASE_CONFIG = {
   appId: "1:911061982108:web:41149896e8fb8e76e88659"
 };
 const COLLS = ['incomes','expenses','bills','budgets','goals','loans'];
+const ADMIN_EMAIL = 'ionut.051194@gmail.com'; // panoul de administrare + acces implicit la Date & backup
 const Cloud = { app:null, auth:null, db:null, user:null, fid:null, active:false,
                 unsubs:[], last:null, metaLast:null, pushT:null, inviteCode:'', myWho:null, role:'sot',
-                members:[], owner:null, kicked:false };
+                members:[], owner:null, kicked:false, admin:[], adminLoaded:false };
 const localMode = ()=> Store.get('casa_local_mode')==='1';
+const isAdminUser = ()=> !!(Cloud.user && (Cloud.user.email||'').toLowerCase()===ADMIN_EMAIL.toLowerCase());
+/* acces la Date & backup: local/fără familie = da; în familie = creatorul sau membru cu permisiune */
+function canManageData(){
+  if(!Cloud.active || !Cloud.fid) return true;
+  if(Cloud.owner && Cloud.user && Cloud.owner===Cloud.user.uid) return true;
+  const mi=(Cloud.members||[]).find(m=>Cloud.user && m.uid===Cloud.user.uid);
+  return !!(mi && mi.canData);
+}
 const showEl = id=>{ const el=document.getElementById(id); if(el) el.classList.remove('hidden'); };
 const hideEl = id=>{ const el=document.getElementById(id); if(el) el.classList.add('hidden'); };
 
@@ -2838,7 +2851,7 @@ function startSync(fid){
     Cloud.owner=d.owner||null;
     Cloud.members=Object.keys(d.members||{}).map(uid=>({
       uid, email:(info[uid]&&info[uid].email)||'', who:(info[uid]&&info[uid].who)||'',
-      me:uid===Cloud.user.uid, owner:uid===d.owner
+      me:uid===Cloud.user.uid, owner:uid===d.owner, canData:(info[uid]&&info[uid].canData)===true
     })).sort((a,b)=> (b.owner-a.owner)||(b.me-a.me));
     const mi=info[Cloud.user.uid];
     if(mi && mi.who) Cloud.myWho=mi.who;
@@ -2875,6 +2888,15 @@ async function removeMember(uid){
     const del=firebase.firestore.FieldValue.delete();
     await Cloud.db.collection('families').doc(Cloud.fid).update({['members.'+uid]:del, ['memberInfo.'+uid]:del});
     toast('Membru scos din familie');
+  }catch(e){ fsErr(e,true); }
+}
+async function toggleDataAccess(uid){
+  if(!Cloud.active || Cloud.owner!==Cloud.user.uid || uid===Cloud.user.uid) return;
+  const m=(Cloud.members||[]).find(x=>x.uid===uid); if(!m) return;
+  const val=!m.canData;
+  try{
+    await Cloud.db.collection('families').doc(Cloud.fid).update({['memberInfo.'+uid+'.canData']:val});
+    toast(val?'Acces la Date & backup acordat':'Acces la Date & backup retras');
   }catch(e){ fsErr(e,true); }
 }
 function stopSync(){ Cloud.unsubs.forEach(u=>{ try{u();}catch(e){} }); Cloud.unsubs=[]; Cloud.active=false; }
@@ -2987,13 +3009,21 @@ function cloudSettingsHTML(ic){
         const init = (m.email||'?').charAt(0).toUpperCase();
         const tags = [m.owner?'creator':'', m.me?'tu':''].filter(Boolean).map(t=>`<span class="pill pos" style="margin-left:6px">${t}</span>`).join('');
         const roleLbl = m.who==='sotie'?'Soție':m.who==='sot'?'Soț':(m.who||'membru');
-        rows.push(`<div class="set-row">
+        const isOwnerMe = Cloud.owner===Cloud.user.uid;
+        const dataBadge = (m.owner||m.canData)?`<span class="pill pos" style="margin-left:6px">📦 backup</span>`:'';
+        rows.push(`<div class="set-row" style="flex-wrap:wrap">
           <div class="uava ${cls}">${esc(init)}</div>
-          <div class="set-meta"><div class="set-title">${esc(m.email||'(fără email)')}${tags}</div><div class="set-desc">Rol: ${esc(roleLbl)}</div></div>
-          ${(Cloud.owner===Cloud.user.uid && !m.me)?`<button class="btn sm danger" data-action="removemember" data-uid="${esc(m.uid)}">Scoate</button>`:''}
+          <div class="set-meta"><div class="set-title">${esc(m.email||'(fără email)')}${tags}${dataBadge}</div><div class="set-desc">Rol: ${esc(roleLbl)}</div></div>
+          ${(isOwnerMe && !m.me)?`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+            <div style="display:flex;align-items:center;gap:6px" title="Acces la Date & backup"><span style="font-size:11px;color:var(--ink-4)">Date & backup</span><div class="switch ${m.canData?'on':''}" data-dataaccess="${esc(m.uid)}"></div></div>
+            <button class="btn sm danger" data-action="removemember" data-uid="${esc(m.uid)}">Scoate</button>
+          </div>`:''}
         </div>`);
       });
-      rows.push(`<div class="set-row"><div class="set-meta"><div class="set-desc">${Cloud.members.length} ${Cloud.members.length===1?'membru':'membri'} în familie. Doar aceste persoane pot vedea și modifica datele.</div></div></div>`);
+      const gate = Cloud.owner===Cloud.user.uid
+        ? 'Creatorul familiei are mereu acces la „Date & backup”. Poți acorda acces și altui membru din comutatorul de mai sus.'
+        : (canManageData()?'Ai acces la „Date & backup” (acordat de creator).':'Doar creatorul (sau cine primește acces) poate folosi „Date & backup”.');
+      rows.push(`<div class="set-row"><div class="set-meta"><div class="set-desc">${Cloud.members.length} ${Cloud.members.length===1?'membru':'membri'} în familie. Doar aceste persoane pot vedea și modifica datele. ${gate}</div></div></div>`);
     }
   } else {
     rows.push(`<div class="set-row">
@@ -3002,7 +3032,48 @@ function cloudSettingsHTML(ic){
       <button class="btn sm primary" data-action="showlogin">Conectează-te</button>
     </div>`);
   }
-  return `<div class="section-head"><h3>Cont & sincronizare</h3><div class="line"></div></div><div class="set-group">${rows.join('')}</div>`;
+  let out = `<div class="section-head"><h3>Cont & sincronizare</h3><div class="line"></div></div><div class="set-group">${rows.join('')}</div>`;
+  if(isAdminUser()){
+    out += `<div class="section-head"><h3>⚙️ Administrare</h3><div class="line"></div>
+      <button class="btn sm" data-action="loadadmin">Reîncarcă</button></div>
+    <div class="set-desc" style="margin:0 2px 10px">Toate familiile care folosesc aplicația (vizibil doar pentru tine). Conturile create fără familie apar doar în consola Firebase → Authentication.</div>
+    <div id="adminList"><div style="padding:16px;color:var(--ink-4)"><span class="spin"></span> Se încarcă familiile…</div></div>`;
+  }
+  return out;
+}
+function hookSettings(){ if(isAdminUser()) loadAdmin(); }
+async function loadAdmin(){
+  const box=$('#adminList'); if(!box || !isAdminUser() || !Cloud.db) return;
+  box.innerHTML='<div style="padding:16px;color:var(--ink-4)"><span class="spin"></span> Se încarcă familiile…</div>';
+  try{
+    const snap=await Cloud.db.collection('families').get();
+    const fams=[]; snap.forEach(dd=>fams.push({id:dd.id, ...dd.data()}));
+    fams.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    Cloud.adminLoaded=true;
+    if(!fams.length){ box.innerHTML='<div class="set-desc" style="padding:10px 2px">Nicio familie încă.</div>'; return; }
+    const emails=new Set();
+    const cards=fams.map(f=>{
+      const info=f.memberInfo||{};
+      const members=Object.keys(f.members||{}).map(uid=>{ const mi=info[uid]||{}; if(mi.email) emails.add((mi.email||'').toLowerCase()); return {uid, email:mi.email||'(fără email)', who:mi.who||'', owner:uid===f.owner, canData:mi.canData===true}; });
+      const created=f.createdAt?new Date(f.createdAt).toLocaleDateString('ro-RO',{day:'numeric',month:'short',year:'numeric'}):'—';
+      const nume = f.users? `${esc(f.users.sot||'Soț')} & ${esc(f.users.sotie||'Soție')}` : esc(f.id.slice(0,6));
+      return `<div class="set-row" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <b style="font-size:14px">${nume}</b>
+          <span class="set-desc">${members.length} ${members.length===1?'membru':'membri'} · creată ${created}</span>
+        </div>
+        ${members.map(m=>`<div style="display:flex;gap:8px;align-items:center;font-size:13px">
+          <span class="udot ${m.who==='sotie'?'u-sotie':m.who==='comun'?'u-comun':'u-sot'}"></span>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.email)}</span>
+          ${m.owner?'<span class="pill pos">creator</span>':''}${(m.owner||m.canData)?'<span class="chip" style="padding:1px 7px;font-size:10px">backup</span>':''}
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+    box.innerHTML=`<div class="set-desc" style="margin:0 2px 10px"><b>${fams.length}</b> familii · <b>${emails.size}</b> conturi distincte cu familie</div><div class="set-group">${cards}</div>`;
+  }catch(e){
+    const c=(e&&e.code)||'';
+    box.innerHTML=`<div class="set-desc" style="padding:12px 2px;color:var(--danger)">Nu am putut încărca${c==='permission-denied'?' — publică regulile actualizate în Firebase (Firestore → Rules), care includ accesul de administrator':' ('+(c||'eroare')+')'}.</div>`;
+  }
 }
 
 /* ============================================================
