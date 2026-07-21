@@ -550,7 +550,7 @@ html.dark .code-badge{color:var(--brand)}
 <div class="app" id="app">
   <!-- SIDEBAR -->
   <aside class="side">
-    <button type="button" class="brand" data-nav="dashboard" aria-label="Mergi la Panou">
+    <button type="button" class="brand" data-nav="dashboard" aria-label="Mergi la Dashboard">
       <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></div>
       <div><div class="brand-name">Casă</div><div class="brand-sub">Finanțele familiei</div></div>
     </button>
@@ -565,7 +565,7 @@ html.dark .code-badge{color:var(--brand)}
   <main class="main">
     <header class="topbar">
       <div>
-        <div class="page-title" id="pageTitle">Panou</div>
+        <div class="page-title" id="pageTitle">Dashboard</div>
         <div class="page-sub" id="pageSub"></div>
       </div>
       <div class="topbar-spacer"></div>
@@ -715,7 +715,7 @@ function saveDB(){ persistLocal(); schedulePush(); }
 
 /* ---------- NAV ---------- */
 const NAV = [
-  {id:'dashboard', label:'Panou',    icon:'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z'},
+  {id:'dashboard', label:'Dashboard', icon:'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z'},
   {id:'income',    label:'Venituri', icon:'M12 2v20M2 12h20|arrow-up', svg:'income'},
   {id:'expenses',  label:'Cheltuieli', svg:'expense'},
   {id:'bills',     label:'Facturi',  svg:'bills'},
@@ -744,7 +744,7 @@ function renderNav(){
       ${svgIcon(n.id)}<span>${n.label}</span>
       ${n.id==='bills'&&overdue?`<span class="nav-badge">${overdue}</span>`:''}
     </button>`).join('');
-  const bn = [['dashboard','Panou'],['expenses','Cheltuieli'],['bills','Facturi'],['budgets','Bugete'],['ai','AI'],['settings','Setări']];
+  const bn = [['dashboard','Dashboard'],['expenses','Cheltuieli'],['bills','Facturi'],['budgets','Bugete'],['ai','AI'],['settings','Setări']];
   $('#botnav').innerHTML = bn.map(([id,l])=>`
     <button data-nav="${id}" class="${state.view===id?'active':''}">
       ${svgIcon(id)}<span>${l}</span>
@@ -754,7 +754,7 @@ function renderNav(){
 
 /* ---------- ROUTER ---------- */
 const TITLES = {
-  dashboard:['Panou','Privire de ansamblu asupra lunii'],
+  dashboard:['Dashboard','Privire de ansamblu asupra lunii'],
   income:['Venituri','Toate încasările familiei'],
   expenses:['Cheltuieli','Fiecare ban, cine și pe ce'],
   bills:['Facturi & abonamente','Scadențe și costuri recurente'],
@@ -771,6 +771,10 @@ function go(view){
   $('#pageTitle').textContent = t; $('#pageSub').textContent = s;
   const showMonth = ['dashboard','income','expenses','budgets'].includes(view);
   $('#monthPick').style.display = showMonth ? '' : 'none';
+  // butoanele globale „+” doar pe pagina principală — celelalte pagini au butoanele lor de adăugare
+  const showAdd = view==='dashboard';
+  const qa=$('#quickAdd'); if(qa) qa.style.display = showAdd ? '' : 'none';
+  const fab=$('#fab'); if(fab) fab.style.display = showAdd ? '' : 'none';
   renderNav();
   render();
   $('.main').scrollTop = 0; window.scrollTo(0,0);
