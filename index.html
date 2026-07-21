@@ -818,9 +818,9 @@ const NAV_SVG = {
 const svgIcon = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NAV_SVG[id]||''}</svg>`;
 
 function renderNav(){
-  const overdue = countBillsDue();
+  const billsUnpaid = countBillsUnpaid();
   const loansDue = countLoansDue();
-  const badge = id => (id==='bills'&&overdue) ? `<span class="nav-badge">${overdue}</span>`
+  const badge = id => (id==='bills'&&billsUnpaid) ? `<span class="nav-badge">${billsUnpaid}</span>`
                     : (id==='loans'&&loansDue) ? `<span class="nav-badge">${loansDue}</span>` : '';
   $('#navMain').innerHTML = NAV.map(n=>`
     <button class="nav-item ${state.view===n.id?'active':''}" data-nav="${n.id}">
@@ -1278,7 +1278,9 @@ function billsWithStatus(){
     return rank[a.status]-rank[b.status] || a.dueDay-b.dueDay;
   });
 }
-function countBillsDue(){ if(!DB) return 0; return billsWithStatus().filter(b=>b.status==='overdue'||b.status==='due').length; }
+/* notificarea de pe tabul Facturi = toate facturile neplătite luna aceasta;
+   nu se șterge la vizitarea tabului, doar când marchezi factura plătită */
+function countBillsUnpaid(){ if(!DB) return 0; return billsWithStatus().filter(b=>b.status!=='paid').length; }
 function billRow(b){
   const tag = b.status==='paid'?'<span class="due-tag paid">Plătită ✓</span>'
     : b.status==='overdue'?`<span class="due-tag over">Restantă</span>`
