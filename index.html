@@ -464,7 +464,7 @@ textarea.field-input{resize:vertical;min-height:64px;line-height:1.5}
     border-top:1px solid var(--line);padding:8px 6px calc(env(safe-area-inset-bottom) + 8px);
     justify-content:space-around
   }
-  .botnav button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 8px;border-radius:12px;color:var(--ink-4);font-size:10px;font-weight:600;position:relative;flex:1}
+  .botnav button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;border-radius:12px;color:var(--ink-4);font-size:10px;font-weight:600;position:relative;flex:1;min-width:0;white-space:nowrap}
   .botnav button svg{width:22px;height:22px}
   .botnav button.active{color:var(--brand)}
   .botnav .nav-badge{position:absolute;top:0;right:22%}
@@ -677,7 +677,7 @@ const NAV_SVG = {
   savings:'<path d="M19 5c-1.5 0-3 1-3 3 0 .5.2 1 .5 1.5C15 11 12 12 12 12s-3-1-4.5-2.5C7.8 9 8 8.5 8 8c0-2-1.5-3-3-3"/><path d="M4 13c0 4 4 7 8 7s8-3 8-7c0-1-.3-2-.8-2.8"/><circle cx="15.5" cy="9.5" r=".5"/>',
   ai:'<path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><rect x="7" y="7" width="10" height="10" rx="2.5"/><circle cx="10" cy="11" r="1"/><circle cx="14" cy="11" r="1"/><path d="M10 14h4"/>',
   reports:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
-  settings:''
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
 };
 const svgIcon = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NAV_SVG[id]||''}</svg>`;
 
@@ -688,7 +688,7 @@ function renderNav(){
       ${svgIcon(n.id)}<span>${n.label}</span>
       ${n.id==='bills'&&overdue?`<span class="nav-badge">${overdue}</span>`:''}
     </button>`).join('');
-  const bn = [['dashboard','Panou'],['expenses','Cheltuieli'],['bills','Facturi'],['budgets','Bugete'],['ai','AI']];
+  const bn = [['dashboard','Panou'],['expenses','Cheltuieli'],['bills','Facturi'],['budgets','Bugete'],['ai','AI'],['settings','Setări']];
   $('#botnav').innerHTML = bn.map(([id,l])=>`
     <button data-nav="${id}" class="${state.view===id?'active':''}">
       ${svgIcon(id)}<span>${l}</span>
@@ -1725,10 +1725,18 @@ function docFieldHTML(doc,withOCR){
   </div>`;
 }
 
+/* comutator Cheltuială/Venit — vizibil doar la adăugare (nu la editare) */
+function kindSwitchHTML(kind){
+  return `<div class="seg-full" style="margin-bottom:15px">
+    <button type="button" class="${kind==='expense'?'active':''}" data-kindswitch="expense">💸 Cheltuială</button>
+    <button type="button" class="${kind==='income'?'active':''}" data-kindswitch="income">💰 Venit</button>
+  </div>`;
+}
 function formIncome(){
   const f=state.form;
   return `<div class="modal-head"><h3>${f.id?'Editează venit':'Venit nou'}</h3>${closeIcon()}</div>
   <div class="modal-body">
+    ${f.id?'':kindSwitchHTML('income')}
     <div class="field"><label>Sumă</label><div class="amount-field"><input class="field-input" id="fAmount" type="number" inputmode="decimal" step="0.01" placeholder="0" value="${f.amount??''}"><span class="cur">lei</span></div></div>
     <div class="field"><label>Categorie</label>
       <select class="select field-input" id="fCat">${INCOME_CATS.map(c=>`<option ${f.category===c.n?'selected':''}>${c.n}</option>`).join('')}</select></div>
@@ -1746,6 +1754,7 @@ function formExpense(){
   const cat=f.category||'Mâncare';
   return `<div class="modal-head"><h3>${f.id?'Editează cheltuială':'Cheltuială nouă'}</h3>${closeIcon()}</div>
   <div class="modal-body">
+    ${f.id?'':kindSwitchHTML('expense')}
     <div class="field"><label>Sumă</label><div class="amount-field"><input class="field-input" id="fAmount" type="number" inputmode="decimal" step="0.01" placeholder="0" value="${f.amount??''}"><span class="cur">lei</span></div></div>
     <div class="field"><label>Categorie</label>${catPickHTML(cat)}</div>
     <div class="field"><label>Subcategorie</label><div id="subWrap">${subPickHTML(cat,f.subcategory)}</div></div>
@@ -2185,12 +2194,18 @@ function setActiveAmong(btn,attr){
 function removePin(){ DB.settings.pin=null; saveDB(); render(); toast('PIN eliminat'); }
 
 document.addEventListener('click', e=>{
-  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-billtpl]');
+  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch]');
   if(!t) return;
   const d=t.dataset;
 
   if(d.nav){ go(d.nav); return; }
   if(d.add){ openForm(d.add); return; }
+  if(d.kindswitch){ // comută Cheltuială ↔ Venit în formularul de adăugare, păstrând suma tastată
+    if(t.classList.contains('active')) return;
+    const a=$('#fAmount')?.value;
+    openForm(d.kindswitch);
+    if(a){ const fa=$('#fAmount'); if(fa) fa.value=a; }
+    return; }
   if(d.edit){ openForm(d.kind, d.edit); return; }
   if(d.del){ delTx(d.del, d.kind); return; }
   if(d.editbill){ openForm('bill', d.editbill); return; }
