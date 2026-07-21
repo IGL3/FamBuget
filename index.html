@@ -1272,7 +1272,7 @@ function billRow(b){
     : b.status==='overdue'?`<span class="due-tag over">Restantă</span>`
     : b.status==='due'?`<span class="due-tag soon">În ${b.days} zile</span>`
     : `<span class="due-tag">Ziua ${b.dueDay}</span>`;
-  return `<div class="bill ${b.status==='due'?'due-soon':b.status==='overdue'?'overdue':''}">
+  return `<div class="bill ${b.status==='due'?'due-soon':b.status==='overdue'?'overdue':''}" data-billopen="${b.id}" style="cursor:pointer">
     <div class="bill-ic">${b.i||'🔁'}</div>
     <div class="bill-main"><div class="bill-name">${esc(b.name)}${b.autopay?' <span class="chip" style="padding:1px 7px;font-size:10px">auto</span>':''}</div>
       <div class="bill-sub">${esc(b.cat)} · mediu ${fmtC(b.avg)}/lună</div></div>
