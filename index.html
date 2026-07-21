@@ -403,7 +403,7 @@ textarea.field-input{resize:vertical;min-height:64px;line-height:1.5}
 .doc-thumb{max-height:120px;border-radius:10px;margin-top:8px}
 
 /* toast */
-.toasts{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 22px);left:50%;transform:translateX(-50%);z-index:400;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toasts{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 22px);left:50%;transform:translateX(-50%);z-index:700;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
 .toast{background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:13px;font-weight:600;font-size:13.5px;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:9px;transform:translateY(14px);opacity:0;transition:.3s;max-width:90vw}
 .toast.show{transform:none;opacity:1}
 .toast svg{width:17px;height:17px;flex:0 0 17px}
@@ -2438,7 +2438,7 @@ function showFam(){
 
 async function createFamily(){
   if(!Cloud.user) return;
-  const btn=$('#famCreate'); if(btn) btn.disabled=true;
+  const btn=$('#famCreate'); if(btn){ btn.disabled=true; btn.textContent='Se creează…'; }
   try{
     const alpha='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code, tries=0;
@@ -2459,8 +2459,8 @@ async function createFamily(){
     hideEl('famScreen');
     startSync(fid);
     toast('Familie creată ✓ Cod invitație: '+code);
-  }catch(e){ fsErr(e); }
-  if(btn) btn.disabled=false;
+  }catch(e){ fsErr(e, true); }
+  if(btn){ btn.disabled=false; btn.textContent='Creează familie nouă'; }
 }
 
 async function migrateLocal(fid){
@@ -2477,10 +2477,11 @@ async function migrateLocal(fid){
 async function joinFamily(){
   const code=($('#famCode').value||'').trim().toUpperCase();
   if(!code) return toast('Scrie codul de invitație','err');
-  const btn=$('#famJoin'); if(btn) btn.disabled=true;
+  const btn=$('#famJoin'); if(btn){ btn.disabled=true; btn.textContent='Se verifică…'; }
+  const btnReset=()=>{ if(btn){ btn.disabled=false; btn.textContent='Intră în familie'; } };
   try{
     const inv=await Cloud.db.collection('invites').doc(code).get();
-    if(!inv.exists){ toast('Cod inexistent — verifică-l cu partenerul','err'); if(btn) btn.disabled=false; return; }
+    if(!inv.exists){ toast('Cod inexistent — verifică-l cu partenerul','err'); btnReset(); return; }
     const fid=inv.data().familyId;
     await Cloud.db.collection('families').doc(fid).update({
       ['members.'+Cloud.user.uid]:true,
@@ -2491,8 +2492,8 @@ async function joinFamily(){
     hideEl('famScreen');
     startSync(fid);
     toast('Bine ai venit în familie ✓');
-  }catch(e){ fsErr(e); }
-  if(btn) btn.disabled=false;
+  }catch(e){ fsErr(e, true); }
+  btnReset();
 }
 
 function startSync(fid){
@@ -2562,12 +2563,13 @@ async function doPush(){
   }
 }
 
-function fsErr(e){
+function fsErr(e, interactive){
   const c=(e && e.code)||'';
-  if(c==='permission-denied') toast('Acces refuzat — publică regulile de securitate în Firebase (Firestore → Rules)','err');
-  else if(c==='unavailable'){ /* offline — Firestore reia singur când revine netul */ }
+  if(c==='permission-denied') toast('Acces refuzat — regulile de securitate nu sunt publicate în Firebase (Firestore → Rules)','err');
+  else if(c==='unavailable'){ if(interactive) toast('Nu mă pot conecta la baza de date — verifică internetul sau adblock-ul','err'); /* altfel Firestore reia singur */ }
+  else if(c==='failed-precondition'){ if(interactive) toast('Baza de date nu răspunde încă — reîncearcă în câteva secunde','err'); }
   else if(c) toast('Eroare cloud: '+c,'err');
-  else if(e) console.warn('cloud', e);
+  else if(e){ console.warn('cloud', e); if(interactive) toast('Eroare neașteptată — reîncearcă','err'); }
 }
 function authErr(e){
   const c=(e && e.code)||'';
