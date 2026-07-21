@@ -796,6 +796,7 @@ const NAV = [
   {id:'bills',     label:'Facturi',  svg:'bills'},
   {id:'budgets',   label:'Bugete',   svg:'budget'},
   {id:'savings',   label:'Economii', svg:'savings'},
+  {id:'loans',     label:'Împrumuturi', svg:'loans'},
   {id:'ai',        label:'Analiză AI', svg:'ai'},
   {id:'reports',   label:'Rapoarte', svg:'reports'}
 ];
@@ -808,22 +809,24 @@ const NAV_SVG = {
   savings:'<path d="M19 5c-1.5 0-3 1-3 3 0 .5.2 1 .5 1.5C15 11 12 12 12 12s-3-1-4.5-2.5C7.8 9 8 8.5 8 8c0-2-1.5-3-3-3"/><path d="M4 13c0 4 4 7 8 7s8-3 8-7c0-1-.3-2-.8-2.8"/><circle cx="15.5" cy="9.5" r=".5"/>',
   ai:'<path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><rect x="7" y="7" width="10" height="10" rx="2.5"/><circle cx="10" cy="11" r="1"/><circle cx="14" cy="11" r="1"/><path d="M10 14h4"/>',
   reports:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  loans:'<path d="M3 8.5h13a2 2 0 0 1 2 2v0M21 15.5H8a2 2 0 0 1-2-2v0"/><path d="M6 5.5 3 8.5l3 3M18 12.5l3 3-3 3"/>',
   settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
 };
 const svgIcon = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NAV_SVG[id]||''}</svg>`;
 
 function renderNav(){
   const overdue = countBillsDue();
+  const loansDue = countLoansDue();
+  const badge = id => (id==='bills'&&overdue) ? `<span class="nav-badge">${overdue}</span>`
+                    : (id==='loans'&&loansDue) ? `<span class="nav-badge">${loansDue}</span>` : '';
   $('#navMain').innerHTML = NAV.map(n=>`
     <button class="nav-item ${state.view===n.id?'active':''}" data-nav="${n.id}">
-      ${svgIcon(n.id)}<span>${n.label}</span>
-      ${n.id==='bills'&&overdue?`<span class="nav-badge">${overdue}</span>`:''}
+      ${svgIcon(n.id)}<span>${n.label}</span>${badge(n.id)}
     </button>`).join('');
-  const bn = [['dashboard','Dashboard'],['expenses','Cheltuieli'],['bills','Facturi'],['budgets','Bugete'],['ai','AI'],['settings','Setări']];
+  const bn = [['dashboard','Dashboard'],['expenses','Cheltuieli'],['loans','Datorii'],['bills','Facturi'],['budgets','Bugete'],['ai','AI'],['settings','Setări']];
   $('#botnav').innerHTML = bn.map(([id,l])=>`
     <button data-nav="${id}" class="${state.view===id?'active':''}">
-      ${svgIcon(id)}<span>${l}</span>
-      ${id==='bills'&&overdue?`<span class="nav-badge">${overdue}</span>`:''}
+      ${svgIcon(id)}<span>${l}</span>${badge(id)}
     </button>`).join('');
 }
 
@@ -835,6 +838,7 @@ const TITLES = {
   bills:['Facturi & abonamente','Scadențe și costuri recurente'],
   budgets:['Bugete','Cât ți-ai propus vs cât ai cheltuit'],
   savings:['Economii & obiective','Fondul de urgență și țintele voastre'],
+  loans:['Împrumuturi','Datorii și bani de recuperat, cu scadențe'],
   ai:['Analiză AI','Ce spun datele despre banii voștri'],
   reports:['Rapoarte','Sinteze lunare, trimestriale, anuale'],
   settings:['Setări','Cont, securitate, date']
@@ -858,7 +862,7 @@ function render(){
   const v = $('#view');
   const map = {
     dashboard:viewDashboard, income:viewIncome, expenses:viewExpenses, bills:viewBills,
-    budgets:viewBudgets, savings:viewSavings, ai:viewAI, reports:viewReports, settings:viewSettings
+    budgets:viewBudgets, savings:viewSavings, loans:viewLoans, ai:viewAI, reports:viewReports, settings:viewSettings
   };
   destroyCharts();
   v.innerHTML = (map[state.view]||viewDashboard)();
@@ -950,6 +954,8 @@ function viewDashboard(){
     : [...expMonthWho(k,who).map(t=>({...t,_k:'e'})), ...incMonthWho(k,who).map(t=>({...t,_k:'i'}))];
   const recent = srcRecent.sort((a,b)=> b.date.localeCompare(a.date) || (b.ts||0)-(a.ts||0)).slice(0,7);
   const bills = billsWithStatus().filter(b=>b.status!=='paid').slice(0,4);
+  const dashLoans=(DB.loans||[]).map(l=>({l,s:loanStatus(l)})).filter(x=>!x.s.done)
+    .sort((a,b)=>(a.l.deadline||'9999-99').localeCompare(b.l.deadline||'9999-99'));
 
   const c3=avgExpense(3,k,who), c6=avgExpense(6,k,who), c12=avgExpense(12,k,who);
 
@@ -1076,7 +1082,17 @@ function viewDashboard(){
       <div class="panel-head"><h4>Facturi de plătit</h4><button class="btn ghost sm" data-nav="bills">Toate</button></div>
       ${bills.length? `<div class="grid" style="gap:10px">${bills.map(billRow).join('')}</div>` : emptyMini('Toate facturile sunt la zi ✓')}
     </div>
-  </div>`;
+  </div>
+  ${dashLoans.length?`<div class="panel" style="margin-top:16px">
+    <div class="panel-head"><h4>Împrumuturi active</h4><button class="btn ghost sm" data-nav="loans">Toate</button></div>
+    <div class="grid" style="gap:10px">
+      ${dashLoans.slice(0,4).map(x=>{const l=x.l,s=x.s;return `<div class="bill ${s.due==='soon'?'due-soon':s.due==='overdue'?'overdue':''}" data-editloan="${l.id}" style="cursor:pointer">
+        <div class="bill-ic">${l.dir==='lent'?'📤':'📥'}</div>
+        <div class="bill-main"><div class="bill-name">${esc(l.person)}</div><div class="bill-sub">${l.dir==='lent'?'De recuperat':'De achitat'} · rămas ${fmtC(s.remaining)}</div></div>
+        <div class="bill-right"><div class="bill-amt">${fmtC(l.amount)}</div>${loanTag(l,s)}</div>
+      </div>`;}).join('')}
+    </div>
+  </div>`:''}`;
 }
 
 function hookDashboard(){
@@ -1409,6 +1425,140 @@ function viewSavings(){
 }
 
 /* ============================================================
+   ÎMPRUMUTURI (datorii & bani de recuperat)
+   ============================================================ */
+function loanStatus(l){
+  const paid=(l.repayments||[]).reduce((s,r)=>s+(+r.amount||0),0);
+  const total=+l.amount||0;
+  const remaining=Math.max(0,total-paid);
+  const done = total>0 && remaining<=0.5;
+  let due='none', days=null;
+  if(l.deadline){
+    const p=String(l.deadline).split('-').map(Number);
+    const d=new Date(p[0],(p[1]||1)-1,p[2]||1); d.setHours(0,0,0,0);
+    const t=new Date(); t.setHours(0,0,0,0);
+    days=Math.round((d-t)/86400000);
+  }
+  if(done) due='done';
+  else if(days===null) due='none';
+  else if(days<0) due='overdue';
+  else if(days<=7) due='soon';
+  else due='ok';
+  return {paid,total,remaining,done,due,days};
+}
+function countLoansDue(){ if(!DB||!DB.loans) return 0; return DB.loans.filter(l=>{const s=loanStatus(l); return !s.done&&(s.due==='overdue'||s.due==='soon');}).length; }
+function loanTag(l,s){
+  if(s.done) return '<span class="due-tag paid">Achitat ✓</span>';
+  if(s.due==='overdue') return `<span class="due-tag over">Restant ${Math.abs(s.days)} ${Math.abs(s.days)===1?'zi':'zile'}</span>`;
+  if(s.due==='soon') return `<span class="due-tag soon">Scadent în ${s.days} ${s.days===1?'zi':'zile'}</span>`;
+  if(s.due==='ok') return `<span class="due-tag">Scadență ${fmtDate(l.deadline)}</span>`;
+  return '<span class="due-tag">Fără scadență</span>';
+}
+function loanCard(l){
+  const s=loanStatus(l), lent=l.dir==='lent';
+  const pct = s.total? clamp(s.paid/s.total*100,0,100):0;
+  const col = s.done?'var(--brand)':s.due==='overdue'?'var(--danger)':'linear-gradient(90deg,var(--brand),var(--info))';
+  return `<div class="prog-card">
+    <div class="prog-top">
+      <div class="prog-ic">${lent?'📤':'📥'}</div>
+      <div style="flex:1;min-width:0"><div class="prog-name">${esc(l.person||'—')}</div>
+        <div style="font-size:11.5px;color:var(--ink-4)">${lent?'Bani de recuperat':'Datorie de achitat'}${l.note?' · '+esc(l.note):''}</div></div>
+      <div style="display:flex;gap:4px">
+        <button class="mini-btn" data-editloan="${l.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4v16h16v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>
+        <button class="mini-btn" data-delloan="${l.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
+      </div>
+    </div>
+    <div class="prog-track"><span style="width:${pct}%;background:${col}"></span></div>
+    <div class="prog-nums"><span>${lent?'Recuperat':'Rambursat'} <b>${fmtC(s.paid)}</b></span><span>Rămas <b style="color:${s.done?'var(--brand)':s.due==='overdue'?'var(--danger)':'inherit'}">${fmtC(s.remaining)}</b> / ${fmtC(s.total)}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px;flex-wrap:wrap">
+      ${loanTag(l,s)}
+      ${s.done?'<span class="pill pos">Achitat ✓</span>':`<button class="btn sm primary" data-loanpay="${l.id}" style="padding:6px 12px">${lent?'+ Am încasat':'+ Am rambursat'}</button>`}
+    </div>
+  </div>`;
+}
+function viewLoans(){
+  const filter = state.loanFilter||'all';
+  const all=(DB.loans||[]);
+  const list = all.filter(l=> filter==='all'?true : filter==='borrowed'? l.dir!=='lent' : l.dir==='lent');
+  const rank=s=>({overdue:0,soon:1,ok:2,none:3,done:4}[s.due]);
+  const sorted=list.map(l=>({l,s:loanStatus(l)})).sort((a,b)=> (a.s.done-b.s.done)||(rank(a.s)-rank(b.s))||((a.l.deadline||'9999-99').localeCompare(b.l.deadline||'9999-99')));
+  const owe = all.filter(l=>l.dir!=='lent').reduce((s,l)=>s+loanStatus(l).remaining,0);
+  const recv = all.filter(l=>l.dir==='lent').reduce((s,l)=>s+loanStatus(l).remaining,0);
+  const overdueN = countLoansDue();
+  return `
+  <div class="stat-grid" style="margin-bottom:16px">
+    <div class="stat"><div class="ic ic-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
+      <div class="k">De achitat (datorii)</div><div class="v">${fmtC(owe)}</div><div class="sub">${all.filter(l=>l.dir!=='lent'&&!loanStatus(l).done).length} active</div></div>
+    <div class="stat"><div class="ic ic-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V4M6 10l6-6 6 6"/></svg></div>
+      <div class="k">De recuperat</div><div class="v">${fmtC(recv)}</div><div class="sub">${all.filter(l=>l.dir==='lent'&&!loanStatus(l).done).length} active</div></div>
+    <div class="stat"><div class="ic ${overdueN?'ic-red':'ic-amber'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+      <div class="k">Scadențe de urmărit</div><div class="v" style="${overdueN?'color:var(--danger)':''}">${overdueN}</div><div class="sub">restante sau apropiate</div></div>
+  </div>
+  <div class="section-head"><h3>Împrumuturi</h3>
+    <div class="seg" style="margin-left:auto">
+      <button data-loanfilter="all" class="${filter==='all'?'active':''}">Toate</button>
+      <button data-loanfilter="borrowed" class="${filter==='borrowed'?'active':''}">Datorii</button>
+      <button data-loanfilter="lent" class="${filter==='lent'?'active':''}">Recuperat</button>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:14px"><button class="btn primary sm" data-add="loan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Împrumut nou</button></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(290px,1fr))">
+    ${sorted.length? sorted.map(x=>loanCard(x.l)).join('') : emptyState('🤝','Niciun împrumut','Adaugă banii pe care i-ai împrumutat (datorii) sau i-ai dat cu împrumut altcuiva — cu persoana și scadența, ca să nu uiți termenele.','<button class=\"btn primary\" data-add=\"loan\">Adaugă primul împrumut</button>')}
+  </div>`;
+}
+function formLoan(){
+  const f=state.form, dir=f.dir||'borrowed';
+  return `<div class="modal-head"><h3>${f.id?'Editează împrumut':'Împrumut nou'}</h3>${closeIcon()}</div>
+  <div class="modal-body">
+    <div class="seg-full" id="loanDirSeg" style="margin-bottom:15px">
+      <button type="button" class="${dir==='borrowed'?'active':''}" data-loandir="borrowed">📥 Am împrumutat</button>
+      <button type="button" class="${dir==='lent'?'active':''}" data-loandir="lent">📤 Am dat cu împrumut</button>
+    </div>
+    <div class="field"><label>Sumă</label><div class="amount-field"><input class="field-input" id="lAmount" type="number" inputmode="decimal" step="0.01" placeholder="0" value="${f.amount??''}"><span class="cur">lei</span></div></div>
+    <div class="field"><label id="lPersonLbl">${dir==='lent'?'Cui i-ai dat':'De la cine ai împrumutat'}</label><input class="field-input" id="lPerson" placeholder="ex. Andrei, mama, Banca X" value="${esc(f.person||'')}"></div>
+    <div class="field-row">
+      <div class="field"><label>Data împrumutului</label><input class="field-input" id="lDate" type="date" value="${f.date||todayISO()}"></div>
+      <div class="field"><label>Scadență <span style="color:var(--ink-4);font-weight:400">(deadline)</span></label><input class="field-input" id="lDeadline" type="date" value="${f.deadline||''}"></div>
+    </div>
+    <div class="field"><label>Notă <span style="color:var(--ink-4);font-weight:400">(opțional)</span></label><input class="field-input" id="lNote" placeholder="ex. pentru mașină, până la salariu" value="${esc(f.note||'')}"></div>
+    <button class="btn primary block" id="submitForm">${f.id?'Salvează':'Adaugă împrumutul'}</button>
+    ${f.id?`<button class="btn danger block" data-delloan="${f.id}" style="margin-top:8px">Șterge împrumutul</button>`:''}
+  </div>`;
+}
+function openLoanPay(id){
+  const l=DB.loans.find(x=>x.id===id); if(!l) return;
+  openModal(formLoanPay(l));
+  const btn=$('#submitLoanPay'); if(btn) btn.onclick=()=>submitLoanPay(l.id);
+}
+function formLoanPay(l){
+  const s=loanStatus(l), lent=l.dir==='lent';
+  return `<div class="modal-head"><h3>${lent?'Am încasat de la':'Am rambursat către'} „${esc(l.person)}”</h3>${closeIcon()}</div>
+  <div class="modal-body">
+    <div style="text-align:center;margin-bottom:16px"><div style="font-size:30px">${lent?'📤':'📥'}</div>
+      <div style="font-family:var(--font-mono);color:var(--ink-3);margin-top:4px">Rămas: <b style="color:var(--ink)">${fmtC(s.remaining)}</b> din ${fmtC(s.total)} lei</div></div>
+    <div class="field"><label>Sumă ${lent?'încasată':'rambursată'}</label><div class="amount-field"><input class="field-input" id="pAmount" type="number" inputmode="decimal" step="0.01" placeholder="0" autofocus><span class="cur">lei</span></div></div>
+    <div class="field"><label>Data</label><input class="field-input" id="pDate" type="date" value="${todayISO()}"></div>
+    <div class="set-row" style="border-radius:14px;border-bottom:1px solid var(--line)">
+      <div class="set-meta"><div class="set-title" style="font-size:13px">Trece și ca ${lent?'venit':'cheltuială'}</div><div class="set-desc">${lent?'Banii intră în cashflow-ul lunii':'Banii ies din cashflow-ul lunii'}</div></div>
+      <div class="switch" id="pAsTx" data-localtoggle></div>
+    </div>
+    <button class="btn primary block" id="submitLoanPay" style="margin-top:16px">Salvează</button>
+  </div>`;
+}
+function submitLoanPay(id){
+  const l=DB.loans.find(x=>x.id===id); if(!l) return;
+  const amount=parseFloat($('#pAmount').value);
+  if(!(amount>0)) return toast('Introdu o sumă validă','err');
+  const date=$('#pDate').value||todayISO();
+  l.repayments=l.repayments||[]; l.repayments.push({date, amount});
+  if($('#pAsTx') && $('#pAsTx').classList.contains('on')){
+    if(l.dir==='lent') DB.incomes.push({id:uid(), amount, date, who:Cloud.myWho||'comun', category:'Alte venituri', note:'Recuperare împrumut · '+l.person, ts:Date.now()});
+    else DB.expenses.push({id:uid(), amount, date, who:Cloud.myWho||'comun', category:'Altele', subcategory:'', method:'transfer', note:'Rambursare împrumut · '+l.person, ts:Date.now()});
+  }
+  afterWrite(l.dir==='lent'?'Încasare adăugată':'Rambursare adăugată');
+}
+
+/* ============================================================
    MOTOR ANALIZĂ (reguli) + EXPORT
    ============================================================ */
 function analyzeFinances(){
@@ -1452,6 +1602,21 @@ function analyzeFinances(){
     const p=totalSaved/totalTarget*100;
     if(p<40) cards.push({t:'warn', ttl:'Economiile sunt sub obiective', txt:`Aveți ${fmt(totalSaved)} strânși din ${fmt(totalTarget)} planificați (${p.toFixed(0)}%). Un transfer automat lunar către fondul de urgență ar accelera progresul.`});
     else cards.push({t:'good', ttl:'Obiective pe drumul cel bun', txt:`Ați acumulat ${fmt(totalSaved)} din ${fmt(totalTarget)} (${p.toFixed(0)}%). Continuați ritmul actual.`});
+  }
+
+  // 5b. împrumuturi & scadențe
+  const activeLoans=(DB.loans||[]).map(l=>({l,s:loanStatus(l)})).filter(x=>!x.s.done);
+  if(activeLoans.length){
+    const oweL=activeLoans.filter(x=>x.l.dir!=='lent').reduce((a,x)=>a+x.s.remaining,0);
+    const recvL=activeLoans.filter(x=>x.l.dir==='lent').reduce((a,x)=>a+x.s.remaining,0);
+    const overdueL=activeLoans.filter(x=>x.s.due==='overdue');
+    const soonL=activeLoans.filter(x=>x.s.due==='soon');
+    let txt='';
+    if(oweL>0) txt+=`Aveți de achitat ${fmt(oweL)} către alții. `;
+    if(recvL>0) txt+=`Aveți de recuperat ${fmt(recvL)}. `;
+    if(overdueL.length) txt+=`⚠ ${overdueL.length} cu scadența depășită: ${overdueL.map(x=>esc(x.l.person)).join(', ')}. `;
+    else if(soonL.length) txt+=`Scadențe apropiate: ${soonL.map(x=>esc(x.l.person)+' ('+x.s.days+' zile)').join(', ')}. `;
+    cards.push({t: overdueL.length?'bad':(soonL.length?'warn':'tip'), ttl:'Împrumuturi & scadențe', txt: txt.trim()});
   }
 
   // 5. costuri specifice
@@ -1498,6 +1663,11 @@ function buildAIReport(){
   DB.budgets.forEach(b=> out += `${b.category} (${b.period}): limită ${fmtC(b.limit)}\n`);
   out += `\n=== OBIECTIVE DE ECONOMISIRE ===\n`;
   DB.goals.forEach(g=> out += `${g.name}: ${fmtC(g.saved)} din ${fmtC(g.target)} (${g.target?(g.saved/g.target*100).toFixed(0):0}%)\n`);
+  const loansActive=(DB.loans||[]).map(l=>({l,s:loanStatus(l)})).filter(x=>!x.s.done);
+  if(loansActive.length){
+    out += `\n=== ÎMPRUMUTURI ACTIVE ===\n`;
+    loansActive.forEach(x=>{ const l=x.l,s=x.s; out += `${l.dir==='lent'?'De recuperat de la':'Datorie către'} ${l.person}: rămas ${fmtC(s.remaining)} din ${fmtC(s.total)}${l.deadline?`, scadență ${l.deadline}${s.due==='overdue'?' (RESTANT)':s.due==='soon'?' (curând)':''}`:''}\n`; });
+  }
   out += `\n=== CINE CHELTUIE (ultimele 12 luni) ===\n`;
   ['sot','sotie','comun'].forEach(w=>{
     const tot=DB.expenses.filter(t=>t.who===w && keys.includes(t.date.slice(0,7))).reduce((s,t)=>s+(+t.amount||0),0);
@@ -1973,8 +2143,9 @@ function openForm(kind,id){
   else if(kind==='bill') rec = id? {...DB.bills.find(x=>x.id===id)} : {cat:'Casă'};
   else if(kind==='budget') rec = id? {...DB.budgets.find(x=>x.id===id)} : {category:'Mâncare',period:'lunar'};
   else if(kind==='goal') rec = id? {...DB.goals.find(x=>x.id===id)} : {i:'🎯'};
+  else if(kind==='loan') rec = id? {...DB.loans.find(x=>x.id===id)} : {dir:'borrowed', date:todayISO()};
   setForm(rec);
-  const tpl={income:formIncome,expense:formExpense,bill:formBill,budget:formBudget,goal:formGoal}[kind];
+  const tpl={income:formIncome,expense:formExpense,bill:formBill,budget:formBudget,goal:formGoal,loan:formLoan}[kind];
   openModal(tpl());
   wireForm(kind);
 }
@@ -2071,6 +2242,16 @@ function submitForm(kind){
     if(state.form.id){ const i=DB.goals.findIndex(x=>x.id===state.form.id); DB.goals[i]=rec; } else DB.goals.push(rec);
     afterWrite('Obiectiv salvat');
   }
+  else if(kind==='loan'){
+    const amount=parseFloat($('#lAmount').value); const person=$('#lPerson').value.trim();
+    if(!(amount>0)) return toast('Introdu o sumă validă','err');
+    if(!person) return toast('Scrie persoana','err');
+    const rec={id:state.form.id||uid(), dir:state.form.dir||'borrowed', amount, person,
+      date:$('#lDate').value||todayISO(), deadline:$('#lDeadline').value||'',
+      note:$('#lNote').value.trim(), repayments:state.form.repayments||[]};
+    if(state.form.id){ const i=DB.loans.findIndex(x=>x.id===state.form.id); DB.loans[i]=rec; } else DB.loans.push(rec);
+    afterWrite('Împrumut salvat');
+  }
 }
 function submitContrib(id){
   const g=DB.goals.find(x=>x.id===id); if(!g) return;
@@ -2089,7 +2270,7 @@ function delTx(id,kind){
   arr.splice(i,1); afterWrite('Șters');
 }
 function delEntity(type,id){
-  const map={bill:'bills',budget:'budgets',goal:'goals'};
+  const map={bill:'bills',budget:'budgets',goal:'goals',loan:'loans'};
   const key=map[type]; if(!key) return;
   DB[key]=DB[key].filter(x=>x.id!==id); afterWrite('Șters');
 }
@@ -2312,7 +2493,7 @@ function doImport(){
   inp.click();
 }
 function clearDemo(){
-  DB.incomes=[]; DB.expenses=[]; DB.bills=[]; DB.budgets=[]; DB.goals=[];
+  DB.incomes=[]; DB.expenses=[]; DB.bills=[]; DB.budgets=[]; DB.goals=[]; DB.loans=[];
   DB.settings.seeded=true; // marchează seed-ul ca gestionat: boot nu repopulează datele demo după refresh
   saveDB(); renderNav(); go('dashboard'); toast('Date șterse');
 }
@@ -2321,12 +2502,12 @@ function clearDemo(){
    DB INIT + SEED
    ============================================================ */
 function normalizeDB(obj){
-  const d=Object.assign({users:{sot:'Soț',sotie:'Soție'},settings:{},incomes:[],expenses:[],bills:[],budgets:[],goals:[]},obj);
+  const d=Object.assign({users:{sot:'Soț',sotie:'Soție'},settings:{},incomes:[],expenses:[],bills:[],budgets:[],goals:[],loans:[]},obj);
   d.settings=Object.assign({pin:null,dark:false,ocr:true,notif:true,adults:2,children:1,seeded:true},d.settings||{});
   // migrare: până acum «dark» era doar manual (și inaccesibil pe mobil); dark activ = alegere explicită,
   // altfel tema urmează automat preferința sistemului (vezi effDark)
   if(d.settings.themeChosen===undefined) d.settings.themeChosen = d.settings.dark===true;
-  ['incomes','expenses','bills','budgets','goals'].forEach(k=>{ if(!Array.isArray(d[k])) d[k]=[]; });
+  ['incomes','expenses','bills','budgets','goals','loans'].forEach(k=>{ if(!Array.isArray(d[k])) d[k]=[]; });
   return d;
 }
 function defaultDB(){
@@ -2369,6 +2550,13 @@ function seedDemo(){
     {id:uid(),name:'Laptop nou',i:'💻',target:5000,saved:1500,deadline:'',contributions:[{date:months[2]+'-08',amount:1500}]}
   ];
   const D=(m,day)=>`${m}-${String(clamp(day,1,daysInMonth(m))).padStart(2,'0')}`;
+  // împrumuturi demo (cu scadențe relative la azi ca să se vadă semnalizarea)
+  const relDay=off=>{ const d=new Date(); d.setDate(d.getDate()+off); return d.toISOString().slice(0,10); };
+  DB.loans=[
+    {id:uid(),dir:'borrowed',amount:5000,person:'Andrei (cumnat)',date:D(months[0],5),deadline:relDay(6),note:'avans mașină',repayments:[{date:D(months[1],5),amount:1000},{date:D(months[2],8),amount:1500}]},
+    {id:uid(),dir:'borrowed',amount:1200,person:'Card cumpărături',date:D(months[1],2),deadline:relDay(-3),note:'',repayments:[{date:D(months[2],2),amount:400}]},
+    {id:uid(),dir:'lent',amount:800,person:'Vlad',date:D(months[1],12),deadline:'',note:'i-am dat până la salariu',repayments:[]}
+  ];
   months.forEach((m,mi)=>{
     // venituri
     DB.incomes.push({id:uid(),amount:rnd(6800,7200),date:D(m,10),who:'sot',category:'Salariu soț',note:'Salariu',ts:Date.now()+mi});
@@ -2406,7 +2594,7 @@ function setActiveAmong(btn,attr){
 function removePin(){ DB.settings.pin=null; saveDB(); render(); toast('PIN eliminat'); }
 
 document.addEventListener('click', e=>{
-  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick]');
+  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter]');
   if(!t) return;
   const d=t.dataset;
 
@@ -2426,6 +2614,14 @@ document.addEventListener('click', e=>{
   if(d.delbudget){ delEntity('budget', d.delbudget); return; }
   if(d.editgoal){ openForm('goal', d.editgoal); return; }
   if(d.delgoal){ delEntity('goal', d.delgoal); return; }
+  if(d.editloan){ openForm('loan', d.editloan); return; }
+  if(d.delloan){ delEntity('loan', d.delloan); return; }
+  if(d.loanpay){ openLoanPay(d.loanpay); return; }
+  if(d.loanfilter){ state.loanFilter=d.loanfilter; render(); return; }
+  if(d.loandir){ state.form.dir=d.loandir;
+    $$('#loanDirSeg [data-loandir]').forEach(b=>b.classList.toggle('active', b===t));
+    const lbl=$('#lPersonLbl'); if(lbl) lbl.textContent = d.loandir==='lent'?'Cui i-ai dat':'De la cine ai împrumutat';
+    return; }
   if(d.paybill){ payBill(d.paybill); return; }
   if(d.billopen){ openForm('bill', d.billopen); return; }
   if(d.contrib){ openContrib(d.contrib); return; }
@@ -2486,7 +2682,7 @@ function wireStatic(){
   $('#prevMonth').onclick=()=>setMonth(shiftMonth(state.month,-1));
   $('#nextMonth').onclick=()=>setMonth(shiftMonth(state.month,1));
   const openAdd=()=>{
-    const map={income:'income',expenses:'expense',bills:'bill',budgets:'budget',savings:'goal'};
+    const map={income:'income',expenses:'expense',bills:'bill',budgets:'budget',savings:'goal',loans:'loan'};
     openForm(map[state.view]||'expense');
   };
   $('#quickAdd').onclick=openAdd; $('#fab').onclick=openAdd;
@@ -2507,7 +2703,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "911061982108",
   appId: "1:911061982108:web:41149896e8fb8e76e88659"
 };
-const COLLS = ['incomes','expenses','bills','budgets','goals'];
+const COLLS = ['incomes','expenses','bills','budgets','goals','loans'];
 const Cloud = { app:null, auth:null, db:null, user:null, fid:null, active:false,
                 unsubs:[], last:null, metaLast:null, pushT:null, inviteCode:'', myWho:null, role:'sot',
                 members:[], owner:null, kicked:false };
