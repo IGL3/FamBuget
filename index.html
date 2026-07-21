@@ -2335,6 +2335,7 @@ document.addEventListener('click', e=>{
       case 'cleardemo': clearDemo(); break;
       case 'logout': if(Cloud.auth){ Cloud.auth.signOut(); toast('Deconectat'); } break;
       case 'copycode': if(Cloud.inviteCode) copyText(Cloud.inviteCode,'Cod copiat'); break;
+      case 'removemember': removeMember(d.uid); break;
       case 'showlogin':
         Store.del('casa_local_mode');
         if(typeof firebase==='undefined'){ toast('Fără conexiune la internet — reîncearcă','err'); }
@@ -2382,7 +2383,8 @@ const FIREBASE_CONFIG = {
 };
 const COLLS = ['incomes','expenses','bills','budgets','goals'];
 const Cloud = { app:null, auth:null, db:null, user:null, fid:null, active:false,
-                unsubs:[], last:null, metaLast:null, pushT:null, inviteCode:'', myWho:null, role:'sot' };
+                unsubs:[], last:null, metaLast:null, pushT:null, inviteCode:'', myWho:null, role:'sot',
+                members:[], owner:null, kicked:false };
 const localMode = ()=> Store.get('casa_local_mode')==='1';
 const showEl = id=>{ const el=document.getElementById(id); if(el) el.classList.remove('hidden'); };
 const hideEl = id=>{ const el=document.getElementById(id); if(el) el.classList.add('hidden'); };
@@ -2498,7 +2500,7 @@ async function joinFamily(){
 
 function startSync(fid){
   stopSync();
-  Cloud.fid=fid; Cloud.active=true;
+  Cloud.fid=fid; Cloud.active=true; Cloud.kicked=false;
   Cloud.last={}; COLLS.forEach(c=>Cloud.last[c]=new Map());
   Cloud.metaLast=null;
   const fam=Cloud.db.collection('families').doc(fid);
@@ -2510,18 +2512,48 @@ function startSync(fid){
     if(d.adults!=null) DB.settings.adults=d.adults;
     if(d.children!=null) DB.settings.children=d.children;
     Cloud.metaLast=canon({users:DB.users, adults:DB.settings.adults??2, children:DB.settings.children??1});
-    const mi=d.memberInfo && d.memberInfo[Cloud.user.uid];
+    const info=d.memberInfo||{};
+    Cloud.owner=d.owner||null;
+    Cloud.members=Object.keys(d.members||{}).map(uid=>({
+      uid, email:(info[uid]&&info[uid].email)||'', who:(info[uid]&&info[uid].who)||'',
+      me:uid===Cloud.user.uid, owner:uid===d.owner
+    })).sort((a,b)=> (b.owner-a.owner)||(b.me-a.me));
+    const mi=info[Cloud.user.uid];
     if(mi && mi.who) Cloud.myWho=mi.who;
     persistLocal(); renderNav(); render();
-  }, fsErr));
+  }, syncErr));
   COLLS.forEach(c=>{
     Cloud.unsubs.push(fam.collection(c).onSnapshot(s=>{
       const arr=[]; const m=new Map();
       s.forEach(doc=>{ const r=doc.data(); r.id=doc.id; arr.push(r); m.set(doc.id, canon(r)); });
       DB[c]=arr; Cloud.last[c]=m;
       persistLocal(); renderNav(); render();
-    }, fsErr));
+    }, syncErr));
   });
+}
+/* eroare pe listenerii familiei: permission-denied în timpul sincronizării = am fost scoși din familie */
+function syncErr(e){
+  if(e && e.code==='permission-denied' && Cloud.active){
+    if(Cloud.kicked) return;
+    Cloud.kicked=true;
+    stopSync();
+    Cloud.fid=null; Cloud.members=[]; Cloud.inviteCode=''; Cloud.myWho=null;
+    try{ Cloud.db.collection('userProfiles').doc(Cloud.user.uid).set({familyId:null},{merge:true}); }catch(_){}
+    toast('Nu mai ai acces la această familie','err');
+    showFam();
+    return;
+  }
+  fsErr(e);
+}
+async function removeMember(uid){
+  if(!Cloud.active || Cloud.owner!==Cloud.user.uid || uid===Cloud.user.uid) return;
+  const m=Cloud.members.find(x=>x.uid===uid);
+  if(!confirm('Scoți din familie '+((m&&m.email)||'acest membru')+'?\nNu va mai putea vedea sau modifica datele.')) return;
+  try{
+    const del=firebase.firestore.FieldValue.delete();
+    await Cloud.db.collection('families').doc(Cloud.fid).update({['members.'+uid]:del, ['memberInfo.'+uid]:del});
+    toast('Membru scos din familie');
+  }catch(e){ fsErr(e,true); }
 }
 function stopSync(){ Cloud.unsubs.forEach(u=>{ try{u();}catch(e){} }); Cloud.unsubs=[]; Cloud.active=false; }
 
@@ -2627,6 +2659,20 @@ function cloudSettingsHTML(ic){
       <div class="set-meta"><div class="set-title">Cod invitație familie</div><div class="set-desc">Dă-i-l partenerului: se conectează cu contul lui și introduce codul</div></div>
       ${Cloud.inviteCode?`<span class="code-badge">${esc(Cloud.inviteCode)}</span><button class="btn sm" data-action="copycode">Copiază</button>`:'<span class="set-desc">…</span>'}
     </div>`);
+    if(Cloud.active && Cloud.members.length){
+      Cloud.members.forEach(m=>{
+        const cls = m.who==='sotie'?'av-sotie':m.who==='comun'?'av-comun':'av-sot';
+        const init = (m.email||'?').charAt(0).toUpperCase();
+        const tags = [m.owner?'creator':'', m.me?'tu':''].filter(Boolean).map(t=>`<span class="pill pos" style="margin-left:6px">${t}</span>`).join('');
+        const roleLbl = m.who==='sotie'?'Soție':m.who==='sot'?'Soț':(m.who||'membru');
+        rows.push(`<div class="set-row">
+          <div class="uava ${cls}">${esc(init)}</div>
+          <div class="set-meta"><div class="set-title">${esc(m.email||'(fără email)')}${tags}</div><div class="set-desc">Rol: ${esc(roleLbl)}</div></div>
+          ${(Cloud.owner===Cloud.user.uid && !m.me)?`<button class="btn sm danger" data-action="removemember" data-uid="${esc(m.uid)}">Scoate</button>`:''}
+        </div>`);
+      });
+      rows.push(`<div class="set-row"><div class="set-meta"><div class="set-desc">${Cloud.members.length} ${Cloud.members.length===1?'membru':'membri'} în familie. Doar aceste persoane pot vedea și modifica datele.</div></div></div>`);
+    }
   } else {
     rows.push(`<div class="set-row">
       <div class="set-ic">${ic('<path d="M17.5 19a4.5 4.5 0 1 0-.4-9A7 7 0 1 0 4 14.5"/><path d="M12 12v9M8.5 17.5 12 21l3.5-3.5"/>')}</div>
