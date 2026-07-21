@@ -16,6 +16,7 @@
 <style>
 /* ============================== TOKENS ============================== */
 :root{
+  color-scheme:light;
   --font-display:'Sora',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   --font-body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   --font-mono:'JetBrains Mono','SFMono-Regular',ui-monospace,monospace;
@@ -61,6 +62,7 @@
   --maxw:1240px;
 }
 html.dark{
+  color-scheme:dark;
   --bg:#0a0f0d;
   --bg-grain:#0c1210;
   --surface:#121916;
@@ -1628,8 +1630,8 @@ function viewSettings(){
   <div class="set-group">
     <div class="set-row">
       <div class="set-ic">${ic('<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>')}</div>
-      <div class="set-meta"><div class="set-title">Mod întunecat</div><div class="set-desc">Temă graphite pentru seară</div></div>
-      ${sw(s.dark,'dark')}
+      <div class="set-meta"><div class="set-title">Mod întunecat</div><div class="set-desc">Implicit urmează tema telefonului</div></div>
+      ${sw(effDark(),'dark')}
     </div>
     <div class="set-row">
       <div class="set-ic">${ic('<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/>')}</div>
@@ -2026,6 +2028,8 @@ function hideLock(){ $('#lockScreen').classList.add('hidden'); pinBuf=''; pinTem
 /* ============================================================
    TEMĂ
    ============================================================ */
+const sysDark = ()=>{ try{ return window.matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){ return false; } };
+const effDark = ()=> (DB && DB.settings.themeChosen) ? !!DB.settings.dark : sysDark();
 function applyTheme(dark){
   document.documentElement.classList.toggle('dark',!!dark);
   const lbl=$('#themeLbl'), ic=$('#themeIc');
@@ -2034,7 +2038,7 @@ function applyTheme(dark){
     ? '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'
     : '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>';
 }
-function setTheme(dark){ DB.settings.dark=!!dark; saveDB(); applyTheme(dark); render(); }
+function setTheme(dark){ DB.settings.dark=!!dark; DB.settings.themeChosen=true; saveDB(); applyTheme(dark); render(); }
 
 /* ============================================================
    PWA
@@ -2085,7 +2089,7 @@ function saveFamily(){
   saveDB(); renderNav(); render(); toast('Familie salvată');
 }
 function toggleSetting(key){
-  if(key==='dark'){ setTheme(!DB.settings.dark); return; }
+  if(key==='dark'){ setTheme(!effDark()); return; }
   const currentlyOn = DB.settings[key]!==false;   // ocr/notif implicit true
   DB.settings[key] = !currentlyOn;
   saveDB(); render();
@@ -2099,7 +2103,7 @@ function doImport(){
       try{
         const obj=JSON.parse(r.result);
         if(!obj.users||!obj.expenses) throw new Error('format');
-        DB=normalizeDB(obj); saveDB(); applyTheme(DB.settings.dark); renderNav(); go('dashboard'); toast('Backup restaurat');
+        DB=normalizeDB(obj); saveDB(); applyTheme(effDark()); renderNav(); go('dashboard'); toast('Backup restaurat');
       }catch(e){ toast('Fișier invalid','err'); }
     };
     r.readAsText(f);
@@ -2118,6 +2122,9 @@ function clearDemo(){
 function normalizeDB(obj){
   const d=Object.assign({users:{sot:'Soț',sotie:'Soție'},settings:{},incomes:[],expenses:[],bills:[],budgets:[],goals:[]},obj);
   d.settings=Object.assign({pin:null,dark:false,ocr:true,notif:true,adults:2,children:1,seeded:true},d.settings||{});
+  // migrare: până acum «dark» era doar manual (și inaccesibil pe mobil); dark activ = alegere explicită,
+  // altfel tema urmează automat preferința sistemului (vezi effDark)
+  if(d.settings.themeChosen===undefined) d.settings.themeChosen = d.settings.dark===true;
   ['incomes','expenses','bills','budgets','goals'].forEach(k=>{ if(!Array.isArray(d[k])) d[k]=[]; });
   return d;
 }
@@ -2273,7 +2280,7 @@ function wireStatic(){
     openForm(map[state.view]||'expense');
   };
   $('#quickAdd').onclick=openAdd; $('#fab').onclick=openAdd;
-  $('#themeToggle').onclick=()=>setTheme(!DB.settings.dark);
+  $('#themeToggle').onclick=()=>setTheme(!effDark());
   $('#scrim').addEventListener('click',ev=>{ if(ev.target.id==='scrim') closeModal(); });
   document.addEventListener('keydown',ev=>{ if(ev.key==='Escape') closeModal(); });
   document.addEventListener('click',ev=>{ const b=ev.target.closest('#installBtn'); if(b&&deferredPrompt){ deferredPrompt.prompt(); deferredPrompt=null; b.style.display='none'; } });
@@ -2288,7 +2295,13 @@ function boot(){
     if(raw){ try{ DB=normalizeDB(JSON.parse(raw)); }catch(e){ DB=defaultDB(); } }
     else DB=defaultDB();
     if(!DB.settings.seeded && DB.expenses.length===0){ seedDemo(); saveDB(); }
-    applyTheme(DB.settings.dark);
+    applyTheme(effDark());
+    // fără alegere manuală, tema urmărește live schimbările din sistem (zi/noapte)
+    try{
+      const mq=window.matchMedia('(prefers-color-scheme: dark)');
+      const onSys=()=>{ if(!DB.settings.themeChosen){ applyTheme(effDark()); render(); } };
+      if(mq.addEventListener) mq.addEventListener('change',onSys); else if(mq.addListener) mq.addListener(onSys);
+    }catch(e){}
     const ml=$('#monthLabel'); if(ml) ml.textContent=monthName(state.month);
     wireStatic();
     renderNav();
