@@ -1317,7 +1317,9 @@ function viewBills(){
           </div>
         </div>
         <div style="position:absolute;right:14px;bottom:-9px;display:flex;gap:6px">
-          ${b.status!=='paid'?`<button class="btn primary sm" data-paybill="${b.id}" style="padding:5px 11px;font-size:12px;box-shadow:var(--shadow-md)">Marchează plătită</button>`:''}
+          ${b.status!=='paid'
+            ? `<button class="btn primary sm" data-paybill="${b.id}" style="padding:5px 11px;font-size:12px;box-shadow:var(--shadow-md)">Marchează plătită</button>`
+            : `<button class="btn sm" data-unpaybill="${b.id}" style="padding:5px 11px;font-size:12px;box-shadow:var(--shadow-md)">Anulează plata</button>`}
           <button class="btn sm" data-editbill="${b.id}" style="padding:5px 10px;font-size:12px">Editează</button>
         </div>
       </div>`).join('') : emptyState('📄','Nicio factură','Adaugă abonamentele și facturile recurente ca să nu mai uiți nicio scadență.','<button class=\"btn primary\" data-add=\"bill\">Adaugă prima factură</button>')}
@@ -1336,6 +1338,14 @@ function payBill(id){
   b.history.push({date: todayISO(), amount:+b.amount||0});
   DB.expenses.push({id:uid(), amount:+b.amount||0, date:todayISO(), who:'comun', category:b.cat, subcategory:b.name, method:'transfer', note:'Factură recurentă', ts:Date.now(), fromBill:id});
   saveDB(); renderNav(); render(); toast(`${b.name} marcată ca plătită`);
+}
+function unpayBill(id){
+  const b = DB.bills.find(x=>x.id===id); if(!b) return;
+  const realMonth = monthKey(new Date());
+  // scoate plata lunii curente din istoric și șterge cheltuiala creată la marcare
+  b.history = (b.history||[]).filter(h=>String(h.date).slice(0,7)!==realMonth);
+  DB.expenses = DB.expenses.filter(e=>!(e.fromBill===id && String(e.date).slice(0,7)===realMonth));
+  saveDB(); renderNav(); render(); toast(`${b.name} marcată ca neplătită`);
 }
 
 /* ============================================================
@@ -2614,7 +2624,7 @@ function setActiveAmong(btn,attr){
 function removePin(){ DB.settings.pin=null; saveDB(); render(); toast('PIN eliminat'); }
 
 document.addEventListener('click', e=>{
-  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess]');
+  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess]');
   if(!t) return;
   const d=t.dataset;
 
@@ -2644,6 +2654,7 @@ document.addEventListener('click', e=>{
     const lbl=$('#lPersonLbl'); if(lbl) lbl.textContent = d.loandir==='lent'?'Cui i-ai dat':'De la cine ai împrumutat';
     return; }
   if(d.paybill){ payBill(d.paybill); return; }
+  if(d.unpaybill){ unpayBill(d.unpaybill); return; }
   if(d.billopen){ openForm('bill', d.billopen); return; }
   if(d.contrib){ openContrib(d.contrib); return; }
   if(d.report){ state.reportRange=d.report; render(); return; }
