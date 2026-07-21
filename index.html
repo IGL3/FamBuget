@@ -41,6 +41,7 @@
   --brand-deep:#095c47;
   --brand-soft:#e2f2ec;
   --brand-ink:#0a4d3b;
+  --hero-pos:#7ff0ce;     /* accent pozitiv pe cardul hero (mereu întunecat) */
 
   --amber:#c07a12;        /* buget / atenție */
   --amber-soft:#fbedd6;
@@ -97,6 +98,68 @@ html.dark{
   --shadow-md:0 8px 24px -10px rgba(0,0,0,.6);
   --shadow-lg:0 28px 64px -22px rgba(0,0,0,.75);
 }
+
+/* ---- Temă REVOLUT: albastru electric pe negru ---- */
+html.dark[data-theme="revolut"]{
+  --bg:#05070d;
+  --bg-grain:#080b14;
+  --surface:#0d1119;
+  --surface-2:#121826;
+  --surface-3:#182033;
+  --line:#1f2740;
+  --line-strong:#2d3856;
+  --ink:#eef2fb;
+  --ink-2:#b8c2da;
+  --ink-3:#8390ad;
+  --ink-4:#59657f;
+
+  --brand:#3d7bff;
+  --brand-deep:#2b5fe6;
+  --brand-soft:#111d3d;
+  --brand-ink:#a8c6ff;
+  --hero-pos:#a8c6ff;
+
+  --info:#5b8cff;
+  --u1:#6f9bff; --u1-soft:#132347;
+  --u2:#f07bab; --u2-soft:#3a1c2b;
+  --u3:#8b97b4; --u3-soft:#1a2133;
+}
+html.dark[data-theme="revolut"] .hero{
+  background:radial-gradient(600px 300px at 100% 0%, color-mix(in srgb,var(--brand) 30%, transparent), transparent 70%),linear-gradient(160deg,#1b3f96,#0a1230)
+}
+
+/* ---- Temă GOLD: negru & auriu premium ---- */
+html.dark[data-theme="gold"]{
+  --bg:#0a0a0a;
+  --bg-grain:#0e0d0b;
+  --surface:#151310;
+  --surface-2:#1c1915;
+  --surface-3:#26221b;
+  --line:#2c2721;
+  --line-strong:#3d372c;
+  --ink:#f6efdf;
+  --ink-2:#d0c6ad;
+  --ink-3:#9c9177;
+  --ink-4:#6d6555;
+
+  --brand:#d4af37;
+  --brand-deep:#b0891c;
+  --brand-soft:#2a2410;
+  --brand-ink:#f0d98a;
+  --hero-pos:#f2e2a0;
+
+  --amber:#e6b34a; --amber-soft:#332813;
+  --danger:#e0686e; --danger-soft:#331a1c;
+  --info:#c9a94a;
+  --u1:#7d9bd1; --u1-soft:#18202e;
+  --u2:#d98fa8; --u2-soft:#2e1c24;
+  --u3:#a99a7e; --u3-soft:#221e17;
+}
+html.dark[data-theme="gold"] .hero{
+  background:radial-gradient(600px 300px at 100% 0%, color-mix(in srgb,var(--brand) 24%, transparent), transparent 70%),linear-gradient(160deg,#3c3114,#15100a)
+}
+html.dark[data-theme="gold"] .hero-balance .cur,
+html.dark[data-theme="gold"] .hero-lbl{color:#f0d98a}
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -435,6 +498,18 @@ textarea.field-input{resize:vertical;min-height:64px;line-height:1.5}
 .auth-link{color:var(--brand);font-weight:600;cursor:pointer}
 .code-badge{font-family:var(--font-mono);font-weight:700;letter-spacing:.1em;background:var(--brand-soft);color:var(--brand-ink);padding:6px 12px;border-radius:10px;display:inline-block}
 html.dark .code-badge{color:var(--brand)}
+
+/* theme picker */
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.theme-card{border:1.5px solid var(--line);border-radius:16px;padding:11px;background:var(--surface);cursor:pointer;text-align:left;transition:.14s;position:relative;box-shadow:var(--shadow-sm)}
+.theme-card:hover{border-color:var(--line-strong)}
+.theme-card[data-on="1"]{border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 22%,transparent)}
+.theme-prev{height:50px;border-radius:11px;position:relative;overflow:hidden;margin-bottom:10px;border:1px solid rgba(128,128,128,.18)}
+.theme-prev .bar{position:absolute;left:11px;height:7px;border-radius:7px}
+.theme-name{font-weight:700;font-size:13.5px}
+.theme-hint{font-size:11px;color:var(--ink-4);margin-top:1px}
+.theme-card .chk{position:absolute;top:9px;right:9px;width:20px;height:20px;border-radius:50%;background:var(--brand);color:#fff;display:none;place-items:center;font-size:12px;font-weight:700;box-shadow:var(--shadow-sm)}
+.theme-card[data-on="1"] .chk{display:grid}
 
 /* settings */
 .set-group{margin-bottom:12px}
@@ -903,7 +978,7 @@ function viewDashboard(){
     <div class="hero-fore">
       <div><div class="k">Venituri lună</div><div class="v">+${fmtC(inc)}</div></div>
       <div><div class="k">Cheltuieli lună</div><div class="v">−${fmtC(exp)}</div></div>
-      <div><div class="k">Rezultat lună</div><div class="v" style="color:${net>=0?'#7ff0ce':'#ffb4b4'}">${net>=0?'+':'−'}${fmtC(Math.abs(net))}</div></div>
+      <div><div class="k">Rezultat lună</div><div class="v" style="color:${net>=0?'var(--hero-pos)':'#ffb4b4'}">${net>=0?'+':'−'}${fmtC(Math.abs(net))}</div></div>
       <div><div class="k">Cost mediu / zi</div><div class="v">${fmtC(dailyAvg)}</div></div>
     </div>
     ${isAll ? `<div class="split-bar">
@@ -1683,12 +1758,9 @@ function viewSettings(){
   <button class="btn primary sm" data-action="savefamily" style="margin-top:12px">Salvează familia</button>
 
   <div class="section-head"><h3>Aspect & experiență</h3><div class="line"></div></div>
-  <div class="set-group">
-    <div class="set-row">
-      <div class="set-ic">${ic('<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>')}</div>
-      <div class="set-meta"><div class="set-title">Mod întunecat</div><div class="set-desc">Implicit urmează tema telefonului</div></div>
-      ${sw(effDark(),'dark')}
-    </div>
+  <div class="set-title" style="margin:2px 2px 9px">Temă <span style="color:var(--ink-4);font-weight:400">· doar pe acest dispozitiv</span></div>
+  ${themePickerHTML()}
+  <div class="set-group" style="margin-top:14px">
     <div class="set-row">
       <div class="set-ic">${ic('<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/>')}</div>
       <div class="set-meta"><div class="set-title">Scanare bonuri (OCR)</div><div class="set-desc">Extrage automat suma din poza bonului</div></div>
@@ -2111,16 +2183,64 @@ function hideLock(){ $('#lockScreen').classList.add('hidden'); pinBuf=''; pinTem
    TEMĂ
    ============================================================ */
 const sysDark = ()=>{ try{ return window.matchMedia('(prefers-color-scheme: dark)').matches; }catch(e){ return false; } };
-const effDark = ()=> (DB && DB.settings.themeChosen) ? !!DB.settings.dark : sysDark();
-function applyTheme(dark){
-  document.documentElement.classList.toggle('dark',!!dark);
-  const lbl=$('#themeLbl'), ic=$('#themeIc');
-  if(lbl) lbl.textContent = dark?'Mod luminos':'Mod întunecat';
-  if(ic) ic.innerHTML = dark
-    ? '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'
-    : '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>';
+const effDark = ()=> resolveTheme(currentTheme())!=='light';
+
+/* teme disponibile (tema e preferință locală per-dispozitiv, nu se sincronizează) */
+const THEME_ORDER = ['auto','light','dark','revolut','gold'];
+const THEME_META = {
+  auto:    {label:'Automat',  hint:'Urmează telefonul'},
+  light:   {label:'Luminos',  hint:'Clasic, fundal deschis'},
+  dark:    {label:'Emerald',  hint:'Clasic întunecat'},
+  revolut: {label:'Revolut',  hint:'Albastru pe negru'},
+  gold:    {label:'Gold',     hint:'Negru & auriu'}
+};
+const THEME_SWATCH = {
+  auto:   {bg:'linear-gradient(135deg,#eef1f0 0 50%,#0a0f0d 50% 100%)', brand:'#2bc79a', u1:'#5b8cff', u2:'#f07bab'},
+  light:  {bg:'#eef1f0', brand:'#0d7a5f', u1:'#2f6df0', u2:'#d1477f'},
+  dark:   {bg:'#0a0f0d', brand:'#2bc79a', u1:'#5b8cff', u2:'#f07bab'},
+  revolut:{bg:'#05070d', brand:'#3d7bff', u1:'#6f9bff', u2:'#f07bab'},
+  gold:   {bg:'#0a0a0a', brand:'#d4af37', u1:'#7d9bd1', u2:'#d98fa8'}
+};
+function currentTheme(){
+  const t = DB && DB.settings.theme;
+  if(THEME_ORDER.includes(t)) return t;
+  if(DB && DB.settings.themeChosen) return DB.settings.dark ? 'dark' : 'light'; // migrare din modelul vechi
+  return 'auto';
 }
-function setTheme(dark){ DB.settings.dark=!!dark; DB.settings.themeChosen=true; saveDB(); applyTheme(dark); render(); }
+function resolveTheme(name){ return name==='auto' ? (sysDark()?'dark':'light') : name; }
+function applyTheme(){
+  const name=currentTheme(), eff=resolveTheme(name), html=document.documentElement;
+  html.classList.toggle('dark', eff!=='light');
+  if(eff==='revolut'||eff==='gold') html.setAttribute('data-theme',eff); else html.removeAttribute('data-theme');
+  const meta={light:'#eef1f0',dark:'#0a0f0d',revolut:'#05070d',gold:'#0a0a0a'}[eff]||'#0a0f0d';
+  const mt=document.querySelector('meta[name="theme-color"]'); if(mt) mt.setAttribute('content',meta);
+  const lbl=$('#themeLbl'); if(lbl) lbl.textContent='Temă: '+THEME_META[name].label;
+  const ic=$('#themeIc'); if(ic) ic.innerHTML='<circle cx="13.5" cy="6.5" r="1.2"/><circle cx="17.5" cy="10.5" r="1.2"/><circle cx="8.5" cy="7.5" r="1.2"/><circle cx="6.5" cy="12.5" r="1.2"/><path d="M12 3a9 9 0 0 0 0 18c1.4 0 2-1 2-2 0-1.3-1-1.5-1-2.5 0-.8.7-1.5 1.6-1.5H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/>';
+}
+function setTheme(name){
+  if(!THEME_ORDER.includes(name)) name='auto';
+  DB.settings.theme=name;
+  DB.settings.themeChosen=(name!=='auto');
+  DB.settings.dark=resolveTheme(name)!=='light';
+  saveDB(); applyTheme(); render();
+}
+function cycleTheme(){ const i=THEME_ORDER.indexOf(currentTheme()); setTheme(THEME_ORDER[(i+1)%THEME_ORDER.length]); }
+function themePickerHTML(){
+  const cur=currentTheme();
+  return `<div class="theme-grid">${THEME_ORDER.map(t=>{
+    const c=THEME_SWATCH[t];
+    return `<button type="button" class="theme-card" data-themepick="${t}" data-on="${t===cur?1:0}">
+      <div class="chk">✓</div>
+      <div class="theme-prev" style="background:${c.bg}">
+        <div class="bar" style="top:11px;width:56%;background:${c.brand}"></div>
+        <div class="bar" style="top:23px;width:34%;background:${c.u1}"></div>
+        <div class="bar" style="top:35px;width:24%;background:${c.u2}"></div>
+      </div>
+      <div class="theme-name">${THEME_META[t].label}</div>
+      <div class="theme-hint">${THEME_META[t].hint}</div>
+    </button>`;
+  }).join('')}</div>`;
+}
 
 /* ============================================================
    PWA
@@ -2171,7 +2291,6 @@ function saveFamily(){
   saveDB(); renderNav(); render(); toast('Familie salvată');
 }
 function toggleSetting(key){
-  if(key==='dark'){ setTheme(!effDark()); return; }
   const currentlyOn = DB.settings[key]!==false;   // ocr/notif implicit true
   DB.settings[key] = !currentlyOn;
   saveDB(); render();
@@ -2185,7 +2304,7 @@ function doImport(){
       try{
         const obj=JSON.parse(r.result);
         if(!obj.users||!obj.expenses) throw new Error('format');
-        DB=normalizeDB(obj); saveDB(); applyTheme(effDark()); renderNav(); go('dashboard'); toast('Backup restaurat');
+        DB=normalizeDB(obj); saveDB(); applyTheme(); renderNav(); go('dashboard'); toast('Backup restaurat');
       }catch(e){ toast('Fișier invalid','err'); }
     };
     r.readAsText(f);
@@ -2287,7 +2406,7 @@ function setActiveAmong(btn,attr){
 function removePin(){ DB.settings.pin=null; saveDB(); render(); toast('PIN eliminat'); }
 
 document.addEventListener('click', e=>{
-  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch]');
+  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick]');
   if(!t) return;
   const d=t.dataset;
 
@@ -2325,6 +2444,7 @@ document.addEventListener('click', e=>{
   if(d.billtpl){ const tpl=BILL_TEMPLATES.find(x=>x.name===d.billtpl); if(tpl){ state.form.i=tpl.i; const n=$('#bName'); if(n)n.value=tpl.name; const c=$('#bCat'); if(c)c.value=tpl.cat; } return; }
   if(d.localtoggle!==undefined){ t.classList.toggle('on'); return; }
   if(d.toggle){ toggleSetting(d.toggle); return; }
+  if(d.themepick){ setTheme(d.themepick); return; }
 
   if(d.action){
     switch(d.action){
@@ -2370,7 +2490,7 @@ function wireStatic(){
     openForm(map[state.view]||'expense');
   };
   $('#quickAdd').onclick=openAdd; $('#fab').onclick=openAdd;
-  $('#themeToggle').onclick=()=>setTheme(!effDark());
+  $('#themeToggle').onclick=()=>cycleTheme();
   $('#scrim').addEventListener('click',ev=>{ if(ev.target.id==='scrim') closeModal(); });
   document.addEventListener('keydown',ev=>{ if(ev.key==='Escape') closeModal(); });
   document.addEventListener('click',ev=>{ const b=ev.target.closest('#installBtn'); if(b&&deferredPrompt){ deferredPrompt.prompt(); deferredPrompt=null; b.style.display='none'; } });
@@ -2699,11 +2819,11 @@ function boot(){
     else DB=defaultDB();
     // demo-ul se populează doar în modul „fără cont”; cu sincronizare cloud pornești curat
     if(localMode() && !DB.settings.seeded && DB.expenses.length===0){ seedDemo(); saveDB(); }
-    applyTheme(effDark());
-    // fără alegere manuală, tema urmărește live schimbările din sistem (zi/noapte)
+    applyTheme();
+    // pe tema Automat, urmărește live schimbările din sistem (zi/noapte)
     try{
       const mq=window.matchMedia('(prefers-color-scheme: dark)');
-      const onSys=()=>{ if(!DB.settings.themeChosen){ applyTheme(effDark()); render(); } };
+      const onSys=()=>{ if(currentTheme()==='auto'){ applyTheme(); render(); } };
       if(mq.addEventListener) mq.addEventListener('change',onSys); else if(mq.addListener) mq.addListener(onSys);
     }catch(e){}
     const ml=$('#monthLabel'); if(ml) ml.textContent=monthName(state.month);
