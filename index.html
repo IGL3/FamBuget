@@ -1315,6 +1315,12 @@ function viewBills(){
 function payBill(id){
   const b = DB.bills.find(x=>x.id===id); if(!b) return;
   b.history = b.history||[];
+  const realMonth = monthKey(new Date());
+  // idempotent: o factură nu poate fi plătită de două ori în aceeași lună
+  // (previne dublarea cheltuielii dintr-un dublu-tap / ghost-click pe telefon)
+  if(b.history.some(h=>String(h.date).slice(0,7)===realMonth)){
+    toast(`${b.name} e deja marcată plătită luna aceasta`); return;
+  }
   b.history.push({date: todayISO(), amount:+b.amount||0});
   DB.expenses.push({id:uid(), amount:+b.amount||0, date:todayISO(), who:'comun', category:b.cat, subcategory:b.name, method:'transfer', note:'Factură recurentă', ts:Date.now(), fromBill:id});
   saveDB(); renderNav(); render(); toast(`${b.name} marcată ca plătită`);
