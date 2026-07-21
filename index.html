@@ -13,6 +13,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"></noscript>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
 /* ============================== TOKENS ============================== */
 :root{
@@ -423,6 +426,16 @@ textarea.field-input{resize:vertical;min-height:64px;line-height:1.5}
 .key:active{background:var(--surface-3);transform:scale(.94)}
 .key.fn{font-size:14px;font-weight:600;background:transparent;border:none;box-shadow:none;color:var(--ink-3)}
 
+/* auth / familie */
+.auth-card{width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px}
+.auth-card .or{display:flex;align-items:center;gap:10px;color:var(--ink-4);font-size:12px}
+.auth-card .or::before,.auth-card .or::after{content:"";flex:1;height:1px;background:var(--line)}
+.gbtn{background:var(--surface);border:1px solid var(--line-strong)}
+.auth-note{font-size:12.5px;color:var(--ink-4);text-align:center;line-height:1.5}
+.auth-link{color:var(--brand);font-weight:600;cursor:pointer}
+.code-badge{font-family:var(--font-mono);font-weight:700;letter-spacing:.1em;background:var(--brand-soft);color:var(--brand-ink);padding:6px 12px;border-radius:10px;display:inline-block}
+html.dark .code-badge{color:var(--brand)}
+
 /* settings */
 .set-group{margin-bottom:12px}
 .set-row{display:flex;align-items:center;gap:14px;padding:15px 18px;background:var(--surface);border:1px solid var(--line);border-bottom:none}
@@ -496,6 +509,41 @@ textarea.field-input{resize:vertical;min-height:64px;line-height:1.5}
   <div style="text-align:center"><h2>Cont blocat</h2><p id="lockMsg">Introdu codul PIN</p></div>
   <div class="pin-dots" id="pinDots"></div>
   <div class="keypad" id="keypad"></div>
+</div>
+
+<!-- CONECTARE (sincronizare cloud) -->
+<div class="lock hidden" id="authScreen">
+  <div class="lock-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></div>
+  <div style="text-align:center"><h2>Casă · Finanțele familiei</h2><p style="margin-top:6px">Conectează-te ca datele să se sincronizeze<br>între telefon, PC și partener</p></div>
+  <div class="auth-card">
+    <input class="field-input" id="auEmail" type="email" placeholder="Email" autocomplete="email">
+    <input class="field-input" id="auPass" type="password" placeholder="Parolă (minim 6 caractere)" autocomplete="current-password">
+    <button class="btn primary block" id="auLogin">Conectare</button>
+    <button class="btn block" id="auReg">Creează cont nou</button>
+    <div class="or">sau</div>
+    <button class="btn block gbtn" id="auGoogle"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C40.9 35.4 44 30.2 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>&nbsp;Conectare cu Google</button>
+    <div class="auth-note">Preferi fără cont? <span class="auth-link" id="auLocal">Folosește doar pe acest dispozitiv</span></div>
+  </div>
+</div>
+
+<!-- CONFIGURARE FAMILIE -->
+<div class="lock hidden" id="famScreen">
+  <div class="lock-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></div>
+  <div style="text-align:center"><h2>Familia voastră</h2><p style="margin-top:6px">Un spațiu comun de date pentru amândoi</p></div>
+  <div class="auth-card">
+    <div class="field" style="margin-bottom:2px"><label>Eu sunt</label>
+      <div class="who-pick">
+        <button type="button" class="w-sot" id="roleSot" data-on="1">Soț</button>
+        <button type="button" class="w-sotie" id="roleSotie" data-on="0">Soție</button>
+      </div>
+    </div>
+    <button class="btn primary block" id="famCreate">Creează familie nouă</button>
+    <div id="famLocalInfo" class="auth-note"></div>
+    <div class="or">sau intră cu un cod primit</div>
+    <input class="field-input" id="famCode" placeholder="ex. CASA-7K2M" style="text-transform:uppercase;text-align:center;font-family:var(--font-mono);font-weight:700;letter-spacing:.08em">
+    <button class="btn block" id="famJoin">Intră în familie</button>
+    <div class="auth-note"><span class="auth-link" id="famLogout">Deconectare</span></div>
+  </div>
 </div>
 
 <!-- APP -->
@@ -662,7 +710,8 @@ const incMonthWho = (k,who)=> (!who||who==='all') ? incMonth(k) : incMonth(k).fi
 const expMonthWho = (k,who)=> (!who||who==='all') ? expMonth(k) : expMonth(k).filter(t=>t.who===who);
 const allTimeBalance = () => sum(DB.incomes)-sum(DB.expenses);
 
-function saveDB(){ try{ Store.set(DBKEY, JSON.stringify(DB)); }catch(e){ console.warn('save failed',e); } }
+function persistLocal(){ try{ Store.set(DBKEY, JSON.stringify(DB)); }catch(e){ console.warn('save failed',e); } }
+function saveDB(){ persistLocal(); schedulePush(); }
 
 /* ---------- NAV ---------- */
 const NAV = [
@@ -1605,6 +1654,7 @@ function viewSettings(){
   const ic=(p)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
   const sw=(on,key)=>`<div class="switch ${on?'on':''}" data-toggle="${key}" role="switch" aria-checked="${on?'true':'false'}"></div>`;
   return `
+  ${cloudSettingsHTML(ic)}
   <div class="section-head"><h3>Familia</h3><div class="line"></div></div>
   <div class="set-group">
     <div class="set-row">
@@ -1840,8 +1890,8 @@ function formContrib(g){
 /* ---------- deschidere formulare ---------- */
 function openForm(kind,id){
   let rec={};
-  if(kind==='income') rec = id? {...DB.incomes.find(x=>x.id===id)} : {date:todayISO(),who:'sot',category:'Salariu soț'};
-  else if(kind==='expense') rec = id? {...DB.expenses.find(x=>x.id===id)} : {date:todayISO(),who:'comun',category:'Mâncare',method:'card'};
+  if(kind==='income') rec = id? {...DB.incomes.find(x=>x.id===id)} : {date:todayISO(),who:Cloud.myWho||'sot',category:Cloud.myWho==='sotie'?'Salariu soție':'Salariu soț'};
+  else if(kind==='expense') rec = id? {...DB.expenses.find(x=>x.id===id)} : {date:todayISO(),who:Cloud.myWho||'comun',category:'Mâncare',method:'card'};
   else if(kind==='bill') rec = id? {...DB.bills.find(x=>x.id===id)} : {cat:'Casă'};
   else if(kind==='budget') rec = id? {...DB.budgets.find(x=>x.id===id)} : {category:'Mâncare',period:'lunar'};
   else if(kind==='goal') rec = id? {...DB.goals.find(x=>x.id===id)} : {i:'🎯'};
@@ -1868,8 +1918,32 @@ function wireForm(kind){
 function readDoc(input){
   const f=input.files&&input.files[0]; if(!f) return;
   const r=new FileReader();
-  r.onload=()=>{ state.form.doc=r.result; const t=$('#docThumb'); if(t){t.src=r.result;t.style.display='';} const d=$('#docDrop'); if(d){d.classList.add('has');d.textContent='Document atașat ✓ · apasă pentru a schimba';} };
+  r.onload=()=>{
+    shrinkImage(r.result, out=>{
+      if(!out){ toast('Poza e prea mare — încearcă alta','err'); return; }
+      state.form.doc=out;
+      const t=$('#docThumb'); if(t){t.src=out;t.style.display='';}
+      const d=$('#docDrop'); if(d){d.classList.add('has');d.textContent='Document atașat ✓ · apasă pentru a schimba';}
+    });
+  };
   r.readAsDataURL(f);
+}
+/* redimensionează poza sub limita de 1MB/înregistrare a Firestore (și economisește spațiu local) */
+function shrinkImage(src,cb){
+  const img=new Image();
+  img.onload=()=>{
+    try{
+      const max=1000; let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+      if(w>max||h>max){ const k=max/Math.max(w,h); w=Math.round(w*k); h=Math.round(h*k); }
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      let out=cv.toDataURL('image/jpeg',.72);
+      if(out.length>700000) out=cv.toDataURL('image/jpeg',.5);
+      cb(out.length>700000 ? null : out);
+    }catch(e){ cb(src.length>700000 ? null : src); }
+  };
+  img.onerror=()=>cb(src.length>700000 ? null : src);
+  img.src=src;
 }
 
 /* ---------- submit ---------- */
@@ -2259,6 +2333,13 @@ document.addEventListener('click', e=>{
       case 'removepin': removePin(); break;
       case 'import': doImport(); break;
       case 'cleardemo': clearDemo(); break;
+      case 'logout': if(Cloud.auth){ Cloud.auth.signOut(); toast('Deconectat'); } break;
+      case 'copycode': if(Cloud.inviteCode) copyText(Cloud.inviteCode,'Cod copiat'); break;
+      case 'showlogin':
+        Store.del('casa_local_mode');
+        if(typeof firebase==='undefined'){ toast('Fără conexiune la internet — reîncearcă','err'); }
+        else { initCloud(); if(!Cloud.user) showEl('authScreen'); }
+        break;
     }
     return;
   }
@@ -2289,6 +2370,272 @@ function wireStatic(){
 }
 
 /* ============================================================
+   CLOUD SYNC (Firebase: auth + familie + Firestore în timp real)
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyApytHhMI7jY-xTOnirBN5RyjCbB5SBsqQ",
+  authDomain: "fambuget-ed7e0.firebaseapp.com",
+  projectId: "fambuget-ed7e0",
+  storageBucket: "fambuget-ed7e0.firebasestorage.app",
+  messagingSenderId: "911061982108",
+  appId: "1:911061982108:web:41149896e8fb8e76e88659"
+};
+const COLLS = ['incomes','expenses','bills','budgets','goals'];
+const Cloud = { app:null, auth:null, db:null, user:null, fid:null, active:false,
+                unsubs:[], last:null, metaLast:null, pushT:null, inviteCode:'', myWho:null, role:'sot' };
+const localMode = ()=> Store.get('casa_local_mode')==='1';
+const showEl = id=>{ const el=document.getElementById(id); if(el) el.classList.remove('hidden'); };
+const hideEl = id=>{ const el=document.getElementById(id); if(el) el.classList.add('hidden'); };
+
+/* stringify canonic (chei sortate) — diff stabil între obiectul local și ecoul serverului */
+function canon(o){
+  if(o===null||typeof o!=='object') return JSON.stringify(o===undefined?null:o);
+  if(Array.isArray(o)) return '['+o.map(canon).join(',')+']';
+  return '{'+Object.keys(o).filter(k=>o[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+canon(o[k])).join(',')+'}';
+}
+
+function initCloud(){
+  if(Cloud.app || typeof firebase==='undefined' || !firebase.initializeApp) return;
+  try{
+    Cloud.app = firebase.initializeApp(FIREBASE_CONFIG);
+    Cloud.auth = firebase.auth();
+    Cloud.db = firebase.firestore();
+    try{ Cloud.db.enablePersistence({synchronizeTabs:true}).catch(()=>{}); }catch(e){}
+    wireAuth();
+    Cloud.auth.onAuthStateChanged(onAuthChange);
+  }catch(e){ console.warn('cloud init failed', e); }
+}
+
+function onAuthChange(user){
+  Cloud.user = user;
+  if(!user){
+    stopSync(); Cloud.fid=null; Cloud.inviteCode=''; Cloud.myWho=null;
+    hideEl('famScreen');
+    if(localMode()) hideEl('authScreen'); else showEl('authScreen');
+    renderNav(); render();
+    return;
+  }
+  Store.del('casa_local_mode');
+  hideEl('authScreen');
+  ensureFamily();
+}
+
+async function ensureFamily(){
+  try{
+    const pr = await Cloud.db.collection('userProfiles').doc(Cloud.user.uid).get();
+    const p = pr.exists ? pr.data() : null;
+    if(p && p.familyId){ if(p.who) Cloud.myWho=p.who; hideEl('famScreen'); startSync(p.familyId); }
+    else showFam();
+  }catch(e){ fsErr(e); showFam(); }
+}
+
+function showFam(){
+  const n=(DB.expenses||[]).length+(DB.incomes||[]).length+(DB.bills||[]).length+(DB.goals||[]).length;
+  const el=$('#famLocalInfo');
+  if(el) el.textContent = n ? `Pe acest dispozitiv există ${n} înregistrări — la „Creează familie nouă” le urc automat în cloud.` : '';
+  showEl('famScreen');
+}
+
+async function createFamily(){
+  if(!Cloud.user) return;
+  const btn=$('#famCreate'); if(btn) btn.disabled=true;
+  try{
+    const alpha='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code, tries=0;
+    do{ code='CASA-'+Array.from({length:4},()=>alpha[Math.floor(Math.random()*alpha.length)]).join(''); tries++; }
+    while(tries<8 && (await Cloud.db.collection('invites').doc(code).get()).exists);
+    const fid = Cloud.db.collection('families').doc().id;
+    const fam = Cloud.db.collection('families').doc(fid);
+    const b = Cloud.db.batch();
+    b.set(fam,{ inviteCode:code, owner:Cloud.user.uid, createdAt:Date.now(),
+      members:{[Cloud.user.uid]:true},
+      memberInfo:{[Cloud.user.uid]:{email:Cloud.user.email||'', who:Cloud.role}},
+      users:DB.users, adults:DB.settings.adults??2, children:DB.settings.children??1 });
+    b.set(Cloud.db.collection('invites').doc(code),{familyId:fid});
+    b.set(Cloud.db.collection('userProfiles').doc(Cloud.user.uid),{familyId:fid, who:Cloud.role, email:Cloud.user.email||''});
+    await b.commit();
+    await migrateLocal(fid);
+    Cloud.myWho=Cloud.role;
+    hideEl('famScreen');
+    startSync(fid);
+    toast('Familie creată ✓ Cod invitație: '+code);
+  }catch(e){ fsErr(e); }
+  if(btn) btn.disabled=false;
+}
+
+async function migrateLocal(fid){
+  const fam=Cloud.db.collection('families').doc(fid);
+  const ops=[];
+  COLLS.forEach(c=> (DB[c]||[]).forEach(r=>{ if(r && r.id!=null) ops.push({c, id:String(r.id), d:JSON.parse(canon(r))}); }));
+  for(let i=0;i<ops.length;i+=400){
+    const b=Cloud.db.batch();
+    ops.slice(i,i+400).forEach(o=> b.set(fam.collection(o.c).doc(o.id), o.d));
+    await b.commit();
+  }
+}
+
+async function joinFamily(){
+  const code=($('#famCode').value||'').trim().toUpperCase();
+  if(!code) return toast('Scrie codul de invitație','err');
+  const btn=$('#famJoin'); if(btn) btn.disabled=true;
+  try{
+    const inv=await Cloud.db.collection('invites').doc(code).get();
+    if(!inv.exists){ toast('Cod inexistent — verifică-l cu partenerul','err'); if(btn) btn.disabled=false; return; }
+    const fid=inv.data().familyId;
+    await Cloud.db.collection('families').doc(fid).update({
+      ['members.'+Cloud.user.uid]:true,
+      ['memberInfo.'+Cloud.user.uid]:{email:Cloud.user.email||'', who:Cloud.role}
+    });
+    await Cloud.db.collection('userProfiles').doc(Cloud.user.uid).set({familyId:fid, who:Cloud.role, email:Cloud.user.email||''});
+    Cloud.myWho=Cloud.role;
+    hideEl('famScreen');
+    startSync(fid);
+    toast('Bine ai venit în familie ✓');
+  }catch(e){ fsErr(e); }
+  if(btn) btn.disabled=false;
+}
+
+function startSync(fid){
+  stopSync();
+  Cloud.fid=fid; Cloud.active=true;
+  Cloud.last={}; COLLS.forEach(c=>Cloud.last[c]=new Map());
+  Cloud.metaLast=null;
+  const fam=Cloud.db.collection('families').doc(fid);
+  Cloud.unsubs.push(fam.onSnapshot(s=>{
+    if(!s.exists) return;
+    const d=s.data();
+    Cloud.inviteCode=d.inviteCode||'';
+    if(d.users) DB.users=Object.assign({},DB.users,d.users);
+    if(d.adults!=null) DB.settings.adults=d.adults;
+    if(d.children!=null) DB.settings.children=d.children;
+    Cloud.metaLast=canon({users:DB.users, adults:DB.settings.adults??2, children:DB.settings.children??1});
+    const mi=d.memberInfo && d.memberInfo[Cloud.user.uid];
+    if(mi && mi.who) Cloud.myWho=mi.who;
+    persistLocal(); renderNav(); render();
+  }, fsErr));
+  COLLS.forEach(c=>{
+    Cloud.unsubs.push(fam.collection(c).onSnapshot(s=>{
+      const arr=[]; const m=new Map();
+      s.forEach(doc=>{ const r=doc.data(); r.id=doc.id; arr.push(r); m.set(doc.id, canon(r)); });
+      DB[c]=arr; Cloud.last[c]=m;
+      persistLocal(); renderNav(); render();
+    }, fsErr));
+  });
+}
+function stopSync(){ Cloud.unsubs.forEach(u=>{ try{u();}catch(e){} }); Cloud.unsubs=[]; Cloud.active=false; }
+
+function schedulePush(){
+  if(!Cloud.active) return;
+  clearTimeout(Cloud.pushT);
+  Cloud.pushT=setTimeout(()=>{ doPush().catch(fsErr); },350);
+}
+async function doPush(){
+  if(!Cloud.active || !Cloud.fid) return;
+  const fam=Cloud.db.collection('families').doc(Cloud.fid);
+  const ops=[];
+  COLLS.forEach(c=>{
+    const cur=new Map();
+    (DB[c]||[]).forEach(r=>{
+      if(!r || r.id==null) return;
+      const id=String(r.id), j=canon(r);
+      cur.set(id,j);
+      if(Cloud.last[c].get(id)!==j) ops.push({t:'set',c,id,j});
+    });
+    Cloud.last[c].forEach((j,id)=>{ if(!cur.has(id)) ops.push({t:'del',c,id}); });
+  });
+  const meta=canon({users:DB.users, adults:DB.settings.adults??2, children:DB.settings.children??1});
+  const metaChanged = meta!==Cloud.metaLast;
+  if(!ops.length && !metaChanged) return;
+  // optimist: notează ca scrise — snapshot-urile readuc oricum adevărul serverului
+  ops.forEach(o=>{ if(o.t==='set') Cloud.last[o.c].set(o.id,o.j); else Cloud.last[o.c].delete(o.id); });
+  Cloud.metaLast=meta;
+  const chunks=[]; for(let i=0;i<ops.length;i+=400) chunks.push(ops.slice(i,i+400));
+  if(!chunks.length) chunks.push([]);
+  for(let k=0;k<chunks.length;k++){
+    const b=Cloud.db.batch();
+    chunks[k].forEach(o=>{
+      const ref=fam.collection(o.c).doc(o.id);
+      if(o.t==='set') b.set(ref, JSON.parse(o.j)); else b.delete(ref);
+    });
+    if(k===0 && metaChanged) b.set(fam, JSON.parse(meta), {merge:true});
+    await b.commit();
+  }
+}
+
+function fsErr(e){
+  const c=(e && e.code)||'';
+  if(c==='permission-denied') toast('Acces refuzat — publică regulile de securitate în Firebase (Firestore → Rules)','err');
+  else if(c==='unavailable'){ /* offline — Firestore reia singur când revine netul */ }
+  else if(c) toast('Eroare cloud: '+c,'err');
+  else if(e) console.warn('cloud', e);
+}
+function authErr(e){
+  const c=(e && e.code)||'';
+  const m={
+    'auth/invalid-email':'Email invalid',
+    'auth/user-not-found':'Nu există cont cu acest email — apasă „Creează cont nou”',
+    'auth/wrong-password':'Parolă greșită',
+    'auth/invalid-credential':'Email sau parolă greșită',
+    'auth/email-already-in-use':'Există deja un cont cu acest email — folosește „Conectare”',
+    'auth/weak-password':'Parola trebuie să aibă minim 6 caractere',
+    'auth/missing-password':'Scrie parola',
+    'auth/too-many-requests':'Prea multe încercări — așteaptă un minut',
+    'auth/network-request-failed':'Fără internet — încearcă din nou',
+    'auth/popup-blocked':'Fereastra Google a fost blocată de browser — folosește email + parolă',
+    'auth/popup-closed-by-user':'Ai închis fereastra Google înainte de finalizare',
+    'auth/cancelled-popup-request':'Reîncearcă — o singură fereastră Google pe rând',
+    'auth/unauthorized-domain':'Domeniul site-ului nu e autorizat în Firebase (Authentication → Settings → Authorized domains)'
+  };
+  toast(m[c] || ('Eroare: '+(e && e.message || c || 'necunoscută')),'err');
+}
+
+function wireAuth(){
+  const L=$('#auLogin'), R=$('#auReg'), G=$('#auGoogle'), lo=$('#auLocal');
+  if(!L || L.dataset.wired) return;
+  L.dataset.wired='1';
+  const creds=()=>({ email:($('#auEmail').value||'').trim(), pass:$('#auPass').value||'' });
+  L.onclick=async()=>{ const {email,pass}=creds(); if(!email||!pass) return toast('Completează email și parolă','err');
+    L.disabled=true; try{ await Cloud.auth.signInWithEmailAndPassword(email,pass); }catch(e){ authErr(e); } L.disabled=false; };
+  R.onclick=async()=>{ const {email,pass}=creds(); if(!email||!pass) return toast('Completează email și parolă','err');
+    R.disabled=true; try{ await Cloud.auth.createUserWithEmailAndPassword(email,pass); toast('Cont creat ✓'); }catch(e){ authErr(e); } R.disabled=false; };
+  G.onclick=async()=>{ G.disabled=true; try{ await Cloud.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }catch(e){ authErr(e); } G.disabled=false; };
+  lo.onclick=()=>{ Store.set('casa_local_mode','1'); hideEl('authScreen');
+    if(!DB.settings.seeded && DB.expenses.length===0){ seedDemo(); saveDB(); renderNav(); render(); } };
+  $('#auPass').addEventListener('keydown',ev=>{ if(ev.key==='Enter') L.click(); });
+  const rs=$('#roleSot'), rf=$('#roleSotie');
+  const setRole=r=>{ Cloud.role=r; rs.setAttribute('data-on', r==='sot'?'1':'0'); rf.setAttribute('data-on', r==='sotie'?'1':'0'); };
+  rs.onclick=()=>setRole('sot'); rf.onclick=()=>setRole('sotie');
+  $('#famCreate').onclick=()=>createFamily();
+  $('#famJoin').onclick=()=>joinFamily();
+  $('#famCode').addEventListener('keydown',ev=>{ if(ev.key==='Enter') joinFamily(); });
+  $('#famLogout').onclick=()=>{ if(Cloud.auth) Cloud.auth.signOut(); };
+}
+
+function cloudSettingsHTML(ic){
+  if(typeof firebase==='undefined') return '';
+  const rows=[];
+  if(Cloud.user){
+    rows.push(`<div class="set-row">
+      <div class="set-ic">${ic('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>')}</div>
+      <div class="set-meta"><div class="set-title">Cont conectat</div><div class="set-desc">${esc(Cloud.user.email||'')} · ${Cloud.active?'sincronizare activă':'se conectează…'}</div></div>
+      <button class="btn sm" data-action="logout">Deconectare</button>
+    </div>`);
+    rows.push(`<div class="set-row">
+      <div class="set-ic">${ic('<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M12 8v12M3 12h18M7.5 8C6 8 5 7 5 5.8 5 4.7 6 4 7 4c2 0 3.4 1.7 5 4 1.6-2.3 3-4 5-4 1 0 2 .7 2 1.8C19 7 18 8 16.5 8z"/>')}</div>
+      <div class="set-meta"><div class="set-title">Cod invitație familie</div><div class="set-desc">Dă-i-l partenerului: se conectează cu contul lui și introduce codul</div></div>
+      ${Cloud.inviteCode?`<span class="code-badge">${esc(Cloud.inviteCode)}</span><button class="btn sm" data-action="copycode">Copiază</button>`:'<span class="set-desc">…</span>'}
+    </div>`);
+  } else {
+    rows.push(`<div class="set-row">
+      <div class="set-ic">${ic('<path d="M17.5 19a4.5 4.5 0 1 0-.4-9A7 7 0 1 0 4 14.5"/><path d="M12 12v9M8.5 17.5 12 21l3.5-3.5"/>')}</div>
+      <div class="set-meta"><div class="set-title">Sincronizare cloud</div><div class="set-desc">Momentan datele stau doar pe acest dispozitiv</div></div>
+      <button class="btn sm primary" data-action="showlogin">Conectează-te</button>
+    </div>`);
+  }
+  return `<div class="section-head"><h3>Cont & sincronizare</h3><div class="line"></div></div><div class="set-group">${rows.join('')}</div>`;
+}
+
+/* ============================================================
    BOOT
    ============================================================ */
 function boot(){
@@ -2296,7 +2643,8 @@ function boot(){
     const raw=Store.get(DBKEY);
     if(raw){ try{ DB=normalizeDB(JSON.parse(raw)); }catch(e){ DB=defaultDB(); } }
     else DB=defaultDB();
-    if(!DB.settings.seeded && DB.expenses.length===0){ seedDemo(); saveDB(); }
+    // demo-ul se populează doar în modul „fără cont”; cu sincronizare cloud pornești curat
+    if(localMode() && !DB.settings.seeded && DB.expenses.length===0){ seedDemo(); saveDB(); }
     applyTheme(effDark());
     // fără alegere manuală, tema urmărește live schimbările din sistem (zi/noapte)
     try{
@@ -2314,6 +2662,8 @@ function boot(){
   finally{
     const app=$('#app'); if(app) app.classList.add('ready');  // dezvăluie mereu UI-ul
     try{ setupPWA(); }catch(e){ console.warn('pwa skipped', e); } // PWA nu blochează niciodată randarea
+    // scripturile Firebase sunt defer → pornim cloud-ul când sunt gata; fără net, aplicația merge local
+    try{ if(typeof firebase!=='undefined') initCloud(); else window.addEventListener('load', initCloud); }catch(e){ console.warn('cloud skipped', e); }
   }
 }
 // Scriptul e la finalul body-ului → DOM-ul de deasupra există deja; pornim imediat,
