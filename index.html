@@ -836,7 +836,7 @@ function renderNav(){
     <button class="nav-item ${state.view===n.id?'active':''}" data-nav="${n.id}">
       ${svgIcon(n.id)}<span>${n.label}</span>${badge(n.id)}
     </button>`).join('');
-  const bn = [['dashboard','Dashboard'],['expenses','Cheltuieli'],['loans','Datorii'],['bills','Facturi'],['budgets','Bugete'],['settings','Setări']];
+  const bn = [['dashboard','Dashboard'],['expenses','Cheltuieli'],['loans','Datorii'],['bills','Facturi'],['budgets','Bugete'],['reports','Rapoarte'],['settings','Setări']];
   $('#botnav').innerHTML = bn.map(([id,l])=>`
     <button data-nav="${id}" class="${state.view===id?'active':''}">
       ${svgIcon(id)}<span>${l}</span>${badge(id)}
