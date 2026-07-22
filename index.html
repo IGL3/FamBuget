@@ -434,34 +434,6 @@ html.dark .due-tag.paid{color:var(--brand)}
 .ai-card.tip .ai-ic{background:var(--u1-soft);color:var(--u1)}
 .ai-out{white-space:pre-wrap;font-size:13.5px;line-height:1.6;color:var(--ink)}
 
-/* consilier AI (chat) */
-.chat-wrap{display:flex;flex-direction:column;gap:12px}
-.chat-scroll{max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 2px}
-.chat-msg{display:flex;gap:10px;max-width:88%}
-.chat-msg.me{align-self:flex-end;flex-direction:row-reverse}
-.chat-av{width:30px;height:30px;border-radius:9px;flex:0 0 30px;display:grid;place-items:center;font-size:15px}
-.chat-av.ai{background:var(--brand-soft);color:var(--brand)}
-.chat-av.me{background:var(--u1-soft);color:var(--u1)}
-.chat-bubble{padding:11px 14px;border-radius:14px;font-size:14px;line-height:1.55;background:var(--surface-2);border:1px solid var(--line);overflow-wrap:anywhere}
-.chat-msg.me .chat-bubble{background:var(--brand);color:#fff;border-color:transparent}
-.chat-bubble b{font-weight:700}
-.chat-empty{text-align:center;padding:30px 14px;color:var(--ink-4)}
-.chat-empty h4{color:var(--ink-2);font-size:16px;margin:8px 0 5px}
-.chat-empty p{font-size:13.5px;max-width:360px;margin:0 auto}
-.chat-bar{display:flex;gap:8px;align-items:flex-end;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px;box-shadow:var(--shadow-sm)}
-.chat-bar textarea{flex:1;border:none;background:none;resize:none;max-height:120px;padding:6px 8px;font-size:14px;line-height:1.5;outline:none}
-.chat-send{width:40px;height:40px;flex:0 0 40px;border-radius:12px;background:linear-gradient(150deg,var(--brand),var(--brand-deep));color:#fff;display:grid;place-items:center}
-.chat-send:disabled{opacity:.5}
-.chat-send svg{width:18px;height:18px}
-.chat-typing{display:flex;gap:4px;padding:5px 2px}
-.chat-typing span{width:7px;height:7px;border-radius:50%;background:var(--ink-4);animation:blink 1.2s infinite}
-.chat-typing span:nth-child(2){animation-delay:.2s}
-.chat-typing span:nth-child(3){animation-delay:.4s}
-@keyframes blink{0%,60%,100%{opacity:.3}30%{opacity:1}}
-.suggest{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
-.suggest .chip{cursor:pointer;transition:.14s}
-.suggest .chip:hover{border-color:var(--brand);color:var(--brand)}
-
 /* ============================== MODAL ============================== */
 .scrim{position:fixed;inset:0;background:rgba(8,12,10,.5);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:.24s}
 .scrim.show{opacity:1;pointer-events:auto}
@@ -739,7 +711,7 @@ const Store = (() => {
 })();
 const DBKEY = 'casa_finance_v1';
 const VIEWKEY = 'casa_view_v1'; // ultimul tab vizitat, ca refresh-ul să te lase unde erai
-const APP_VERSION = '2026.07 · Gemini'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
+const APP_VERSION = '2026.07'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
 
 /* ---------- CONFIG: categorii ---------- */
 const INCOME_CATS = [
@@ -830,7 +802,6 @@ const NAV = [
   {id:'savings',   label:'Economii', svg:'savings'},
   {id:'loans',     label:'Împrumuturi', svg:'loans'},
   {id:'ai',        label:'Analiză AI', svg:'ai'},
-  {id:'advisor',   label:'Consilier AI', svg:'advisor'},
   {id:'reports',   label:'Rapoarte', svg:'reports'}
 ];
 const NAV_SVG = {
@@ -843,7 +814,6 @@ const NAV_SVG = {
   ai:'<path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><rect x="7" y="7" width="10" height="10" rx="2.5"/><circle cx="10" cy="11" r="1"/><circle cx="14" cy="11" r="1"/><path d="M10 14h4"/>',
   reports:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   loans:'<path d="M3 8.5h13a2 2 0 0 1 2 2v0M21 15.5H8a2 2 0 0 1-2-2v0"/><path d="M6 5.5 3 8.5l3 3M18 12.5l3 3-3 3"/>',
-  advisor:'<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/><path d="M9.2 10.3h.01M12 10.3h.01M14.8 10.3h.01"/>',
   settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
 };
 const svgIcon = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NAV_SVG[id]||''}</svg>`;
@@ -857,7 +827,7 @@ function renderNav(){
     <button class="nav-item ${state.view===n.id?'active':''}" data-nav="${n.id}">
       ${svgIcon(n.id)}<span>${n.label}</span>${badge(n.id)}
     </button>`).join('');
-  const bn = [['dashboard','Dashboard'],['expenses','Cheltuieli'],['loans','Datorii'],['bills','Facturi'],['budgets','Bugete'],['advisor','Consilier'],['settings','Setări']];
+  const bn = [['dashboard','Dashboard'],['expenses','Cheltuieli'],['loans','Datorii'],['bills','Facturi'],['budgets','Bugete'],['ai','AI'],['settings','Setări']];
   $('#botnav').innerHTML = bn.map(([id,l])=>`
     <button data-nav="${id}" class="${state.view===id?'active':''}">
       ${svgIcon(id)}<span>${l}</span>${badge(id)}
@@ -874,7 +844,6 @@ const TITLES = {
   savings:['Economii & obiective','Fondul de urgență și țintele voastre'],
   loans:['Împrumuturi','Datorii și bani de recuperat, cu scadențe'],
   ai:['Analiză AI','Ce spun datele despre banii voștri'],
-  advisor:['Consilier financiar AI','Vorbește cu AI-ul despre banii familiei'],
   reports:['Rapoarte','Sinteze lunare, trimestriale, anuale'],
   settings:['Setări','Cont, securitate, date']
 };
@@ -897,11 +866,11 @@ function render(){
   const v = $('#view');
   const map = {
     dashboard:viewDashboard, income:viewIncome, expenses:viewExpenses, bills:viewBills,
-    budgets:viewBudgets, savings:viewSavings, loans:viewLoans, ai:viewAI, advisor:viewAdvisor, reports:viewReports, settings:viewSettings
+    budgets:viewBudgets, savings:viewSavings, loans:viewLoans, ai:viewAI, reports:viewReports, settings:viewSettings
   };
   destroyCharts();
   v.innerHTML = (map[state.view]||viewDashboard)();
-  const hook = { dashboard:hookDashboard, reports:hookReports, settings:hookSettings, advisor:hookAdvisor }[state.view];
+  const hook = { dashboard:hookDashboard, reports:hookReports, settings:hookSettings }[state.view];
   if(hook){ try{ hook(); }catch(e){ console.warn('chart hook failed', e); } }
 }
 
@@ -1831,195 +1800,6 @@ function openReportModal(){
     </div>`);
 }
 
-/* ============================================================
-   CONSILIER FINANCIAR AI (OpenAI sau Google Gemini, chat)
-   ============================================================ */
-/* provider, cheie și model se țin DOAR local pe dispozitiv (nu în DB, deci
-   nu se sincronizează în cloud și nu ajung în backup/export) */
-const AI_MODELS_BY = {
-  openai: ['gpt-4o-mini','gpt-4o','gpt-4.1-mini','gpt-4.1','gpt-4.1-nano','gpt-3.5-turbo'],
-  // modelele gemini-1.5-* au fost retrase (dau 404); folosim doar modelele 2.x curente
-  gemini: ['gemini-2.5-flash-lite','gemini-2.5-flash','gemini-2.0-flash-lite','gemini-2.0-flash','gemini-2.5-pro']
-};
-const AI_DEFAULT_MODEL = { openai:'gpt-4o-mini', gemini:'gemini-2.5-flash-lite' };
-const AI_PROVIDER_NAME = { openai:'OpenAI', gemini:'Google Gemini' };
-function getProvider(){ const p=Store.get('casa_ai_provider'); if(p==='openai'||p==='gemini') return p; return Store.get('casa_openai_key')?'openai':'gemini'; }
-function setProvider(p){ Store.set('casa_ai_provider', p==='gemini'?'gemini':'openai'); }
-const aiKeyStore = ()=> getProvider()==='gemini'?'casa_gemini_key':'casa_openai_key';
-const aiModelStore = ()=> getProvider()==='gemini'?'casa_gemini_model':'casa_openai_model';
-function getAIKey(){ return Store.get(aiKeyStore())||''; }
-function setAIKey(k){ if(k) Store.set(aiKeyStore(),k); else Store.del(aiKeyStore()); }
-function getAIModel(){
-  const m=Store.get(aiModelStore());
-  // model gemini retras (1.5-*) → revino la implicit ca să nu rămâi blocat pe un 404
-  if(getProvider()==='gemini' && /gemini-1\.5/.test(m||'')) return AI_DEFAULT_MODEL.gemini;
-  return m||AI_DEFAULT_MODEL[getProvider()];
-}
-function setAIModel(m){ Store.set(aiModelStore(), m||AI_DEFAULT_MODEL[getProvider()]); }
-function aiModels(){ return AI_MODELS_BY[getProvider()]||AI_MODELS_BY.openai; }
-function loadChat(){ try{ return JSON.parse(Store.get('casa_advisor_chat')||'[]'); }catch(e){ return []; } }
-function saveChat(m){ try{ Store.set('casa_advisor_chat', JSON.stringify((m||[]).slice(-40))); }catch(e){} }
-
-/* markdown minimal (sigur): escape întâi, apoi **bold**, liste, linii noi */
-function mdLite(t){
-  let s=esc(t);
-  s=s.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>');
-  s=s.replace(/^\s*[-*]\s+(.*)$/gm,'• $1');
-  s=s.replace(/\n/g,'<br>');
-  return s;
-}
-function chatBubble(m){
-  const me=m.role==='user';
-  return `<div class="chat-msg ${me?'me':''}">
-    <div class="chat-av ${me?'me':'ai'}">${me?'🙂':'✨'}</div>
-    <div class="chat-bubble">${me?esc(m.content):mdLite(m.content)}</div>
-  </div>`;
-}
-function viewAdvisor(){
-  if(!state.advisorMsgs) state.advisorMsgs=loadChat();
-  const msgs=state.advisorMsgs;
-  const hasKey=!!getAIKey();
-  const prov=getProvider();
-  const cur=getAIModel();
-  const modelOpts=[...new Set([cur,...aiModels()])].map(m=>`<option value="${esc(m)}" ${m===cur?'selected':''}>${esc(m)}</option>`).join('');
-  const head=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:7px">
-      <span style="font-size:12.5px;color:var(--ink-4)">${esc(AI_PROVIDER_NAME[prov])} ·</span>
-      <select class="select" id="advisorModel" style="padding:5px 26px 5px 10px;font-size:12.5px;box-shadow:none">${modelOpts}</select>
-    </div>
-    <div style="display:flex;gap:6px">
-      <button class="btn ghost sm" data-nav="ai">Analiză automată</button>
-      ${msgs.length?`<button class="btn ghost sm" data-action="clearchat">Șterge conversația</button>`:''}
-    </div>
-  </div>`;
-  if(!hasKey){
-    const gem=prov==='gemini';
-    return head+`<div class="ai-card tip">
-      <div class="ai-ic">🔑</div>
-      <div style="flex:1"><h4>Conectează-ți contul ${esc(AI_PROVIDER_NAME[prov])}</h4>
-        ${gem
-          ? `<p>Ca să vorbești cu consilierul, adaugă o cheie API de la <b>Google AI Studio</b> (<b>aistudio.google.com → Get API key</b>). Are un <b>nivel gratuit</b> generos. Cheia se salvează doar pe acest dispozitiv.</p>`
-          : `<p>Ca să vorbești cu consilierul, adaugă o cheie API OpenAI (<b>platform.openai.com → API keys</b>). Ai nevoie și de <b>credit pe API</b> (Billing) — acesta e <b>separat de abonamentul ChatGPT</b> și se plătește la consum. Cheia se salvează doar pe acest dispozitiv.</p>`}
-        <button class="btn sm primary" data-nav="settings" style="margin-top:12px">Adaugă cheia în Setări</button>
-      </div>
-    </div>`;
-  }
-  const suggestions=['Cum putem economisi mai mult?','Unde cheltuim prea mult luna asta?','Ajută-mă cu un buget lunar realist','Cum stăm cu împrumuturile și scadențele?'];
-  const body = msgs.length
-    ? msgs.map(chatBubble).join('') + (state.advisorBusy?`<div class="chat-msg"><div class="chat-av ai">✨</div><div class="chat-bubble"><div class="chat-typing"><span></span><span></span><span></span></div></div></div>`:'')
-    : `<div class="chat-empty"><div style="font-size:34px">✨</div>
-        <h4>Consilierul financiar AI</h4>
-        <p>Întreabă-mă orice despre banii familiei — economisire, bugete, facturi, împrumuturi. Am la dispoziție un rezumat al finanțelor voastre.</p>
-        <div class="suggest">${suggestions.map(s=>`<button class="chip" data-suggest="${esc(s)}">${esc(s)}</button>`).join('')}</div>
-      </div>`;
-  return head+`<div class="chat-wrap">
-    <div class="chat-scroll" id="chatScroll">${body}</div>
-    <div class="chat-bar">
-      <textarea id="chatInput" rows="1" placeholder="Scrie o întrebare…" ${state.advisorBusy?'disabled':''}></textarea>
-      <button class="chat-send" id="chatSend" aria-label="Trimite" ${state.advisorBusy?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
-    </div>
-    <div style="font-size:11px;color:var(--ink-4);text-align:center;margin-top:2px">La fiecare întrebare, un rezumat al finanțelor voastre e trimis către ${esc(AI_PROVIDER_NAME[prov])} ca răspunsul să fie relevant.</div>
-  </div>`;
-}
-function hookAdvisor(){
-  const sc=$('#chatScroll'); if(sc) sc.scrollTop=sc.scrollHeight;
-  const ms=$('#advisorModel'); if(ms) ms.onchange=()=>{ setAIModel(ms.value); toast('Model: '+ms.value); };
-  const inp=$('#chatInput'), send=$('#chatSend');
-  if(send) send.onclick=()=>sendAdvisor();
-  if(inp){
-    inp.onkeydown=ev=>{ if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); sendAdvisor(); } };
-    inp.oninput=()=>{ inp.style.height='auto'; inp.style.height=Math.min(120,inp.scrollHeight)+'px'; };
-    if(!state.advisorBusy) try{ inp.focus(); }catch(e){}
-  }
-}
-async function sendAdvisor(preset){
-  if(state.advisorBusy) return;
-  const inp=$('#chatInput');
-  const text=String(preset!=null?preset:(inp?inp.value:'')||'').trim();
-  if(!text) return;
-  const key=getAIKey(); if(!key){ toast('Adaugă cheia AI în Setări','err'); return; }
-  state.advisorMsgs=state.advisorMsgs||[];
-  state.advisorMsgs.push({role:'user',content:text});
-  saveChat(state.advisorMsgs);
-  state.advisorBusy=true;
-  render();
-  try{
-    const reply=await callAI(key, getAIModel(), state.advisorMsgs);
-    state.advisorMsgs.push({role:'assistant',content:reply});
-  }catch(e){
-    state.advisorMsgs.push({role:'assistant',content:'⚠️ '+((e&&e.message)||'Nu m-am putut conecta la serviciul AI.')});
-  }
-  state.advisorBusy=false;
-  saveChat(state.advisorMsgs);
-  render();
-}
-function advisorSystemPrompt(){
-  return `Ești „Consilierul financiar AI" al unei familii din România. Răspunde MEREU în limba română, concis, practic și prietenos, cu sume în lei (RON). Dai sfaturi bazate pe datele reale de mai jos; nu inventa cifre care nu apar. Când e util, propune sume concrete și pași clari. Dacă întrebarea nu ține de finanțe, răspunde scurt și readu discuția la banii familiei.\n\nDATELE FAMILIEI:\n${buildAIReport()}`;
-}
-async function callAI(key, model, msgs){
-  return getProvider()==='gemini' ? callGemini(key, model, msgs) : callOpenAI(key, model, msgs);
-}
-async function callOpenAI(key, model, msgs){
-  const system = advisorSystemPrompt();
-  const body={ model, temperature:0.4, max_tokens:900,
-    messages:[{role:'system',content:system}, ...msgs.map(m=>({role:m.role,content:m.content}))] };
-  let res;
-  try{
-    res=await fetch('https://api.openai.com/v1/chat/completions',{
-      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+key}, body:JSON.stringify(body)
-    });
-  }catch(e){ throw new Error('Fără conexiune la OpenAI (verifică internetul).'); }
-  if(!res.ok){
-    let apiMsg='', code='';
-    try{ const e=await res.json(); apiMsg=(e.error&&e.error.message)||''; code=(e.error&&(e.error.code||e.error.type))||''; }catch(_){}
-    let msg=apiMsg||('Eroare '+res.status);
-    if(res.status===401) msg='Cheie OpenAI invalidă — verific-o în Setări.';
-    else if(res.status===429){
-      if(/quota|insufficient|billing/i.test(code+' '+apiMsg))
-        msg='Contul OpenAI nu are credit pe API. Adaugă credit pe platform.openai.com → Billing (separat de abonamentul ChatGPT) SAU comută pe Google Gemini (gratis) din Setări → Consilier AI.';
-      else msg='Prea multe cereri prea repede — așteaptă câteva secunde și reîncearcă.';
-    }
-    else if(res.status===404 || /model/i.test(code+' '+apiMsg))
-      msg='Modelul „'+model+'" nu e disponibil pe contul tău. Alege alt model din selectorul de sus (sau în Setări).';
-    throw new Error(msg);
-  }
-  const data=await res.json();
-  return ((((data.choices||[])[0]||{}).message||{}).content||'').trim() || 'Nu am primit răspuns.';
-}
-async function callGemini(key, model, msgs){
-  const body={
-    system_instruction:{ parts:[{text:advisorSystemPrompt()}] },
-    contents: msgs.map(m=>({ role: m.role==='assistant'?'model':'user', parts:[{text:m.content}] })),
-    generationConfig:{ temperature:0.4, maxOutputTokens:900 }
-  };
-  let res;
-  try{
-    res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent?key='+encodeURIComponent(key),{
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
-    });
-  }catch(e){ throw new Error('Fără conexiune la Google Gemini (verifică internetul).'); }
-  if(!res.ok){
-    let apiMsg='', st='';
-    try{ const e=await res.json(); apiMsg=(e.error&&e.error.message)||''; st=(e.error&&e.error.status)||''; }catch(_){}
-    let msg=apiMsg||('Eroare '+res.status);
-    if(res.status===400 && /API key not valid|API_KEY_INVALID/i.test(apiMsg+' '+st)) msg='Cheie Gemini invalidă — verific-o în Setări.';
-    else if(res.status===403) msg='Cheia Gemini nu are acces (activează „Generative Language API" în Google AI Studio).';
-    else if(res.status===429){
-      const daily=/per day|per-day|daily|GenerateRequestsPerDay/i.test(apiMsg);
-      msg=(daily
-        ? 'Ai atins limita gratuită Gemini pe ziua de azi pentru modelul „'+model+'". Încearcă alt model (ex. gemini-1.5-flash) din selectorul de sus, sau revino mâine.'
-        : 'Limită Gemini pe minut atinsă pentru „'+model+'". Așteaptă ~1 minut, sau alege gemini-1.5-flash din selectorul de sus.')
-        + (apiMsg?(' · detaliu: '+apiMsg.slice(0,120)):'');
-    }
-    else if(res.status===404 || /not found|not supported/i.test(apiMsg)) msg='Modelul „'+model+'" nu e disponibil — alege alt model din selectorul de sus.';
-    throw new Error(msg);
-  }
-  const data=await res.json();
-  const cand=(data.candidates||[])[0];
-  if(!cand){ const br=data.promptFeedback&&data.promptFeedback.blockReason; throw new Error(br?('Răspuns blocat de Gemini ('+br+').'):'Nu am primit răspuns de la Gemini.'); }
-  const text=(((cand.content||{}).parts)||[]).map(p=>p.text||'').join('').trim();
-  return text || 'Nu am primit răspuns.';
-}
 
 /* ============================================================
    RAPOARTE
@@ -2194,31 +1974,6 @@ function viewSettings(){
       ${sw(s.notif!==false,'notif')}
     </div>
   </div>
-
-  ${(()=>{ const prov=getProvider(), gem=prov==='gemini';
-  return `<div class="section-head"><h3>Consilier AI</h3><div class="line"></div></div>
-  <div class="seg-full" style="margin-bottom:12px">
-    <button type="button" class="${gem?'':'active'}" data-aiprovider="openai">OpenAI</button>
-    <button type="button" class="${gem?'active':''}" data-aiprovider="gemini">Google Gemini${gem?' · gratis':''}</button>
-  </div>
-  <div class="set-group">
-    <div class="set-row" style="flex-wrap:wrap">
-      <div class="set-ic">${ic('<rect x="4" y="8" width="16" height="12" rx="2.5"/><path d="M12 8V5M9 3h6M9 13v2M15 13v2"/>')}</div>
-      <div class="set-meta"><div class="set-title">Cheie API ${esc(AI_PROVIDER_NAME[prov])}</div><div class="set-desc">${gem?'O creezi gratuit pe aistudio.google.com → „Get API key".':'O creezi pe platform.openai.com → API keys (necesită credit pe Billing, separat de ChatGPT).'} Se salvează doar pe acest dispozitiv.</div></div>
-      <input class="field-input" id="aiKeyInput" type="password" autocomplete="off" placeholder="${gem?'AIza…':'sk-…'}" value="${esc(getAIKey())}" style="max-width:220px;font-family:var(--font-mono)">
-    </div>
-    <div class="set-row">
-      <div class="set-ic">${ic('<rect x="7" y="7" width="10" height="10" rx="2.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>')}</div>
-      <div class="set-meta"><div class="set-title">Model</div><div class="set-desc">${gem?'gemini-2.0-flash e rapid și gratuit.':'gpt-4o-mini e ieftin și bun.'} Poți alege din listă sau scrie exact modelul la care are acces contul tău.</div></div>
-      <input class="field-input" id="aiModelSelect" list="aiModelsDL" value="${esc(getAIModel())}" placeholder="${esc(AI_DEFAULT_MODEL[prov])}" style="max-width:190px;font-family:var(--font-mono)">
-      <datalist id="aiModelsDL">${aiModels().map(m=>`<option value="${m}">`).join('')}</datalist>
-    </div>
-    <div class="set-row">
-      <div class="set-ic">${ic('<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>')}</div>
-      <div class="set-meta"><div class="set-title">Cum funcționează</div><div class="set-desc">La fiecare întrebare din „Consilier AI", un rezumat al finanțelor voastre e trimis către ${esc(AI_PROVIDER_NAME[prov])} ca răspunsul să fie relevant. ${gem?'Gemini are un nivel gratuit generos.':'Plătești doar consumul (câțiva cenți).'}</div></div>
-      <button class="btn sm primary" data-action="saveaikey">Salvează</button>
-    </div>
-  </div>`; })()}
 
   <div class="section-head"><h3>Securitate</h3><div class="line"></div></div>
   <div class="set-group">
@@ -2874,7 +2629,7 @@ function setActiveAmong(btn,attr){
 function removePin(){ DB.settings.pin=null; saveDB(); render(); toast('PIN eliminat'); }
 
 document.addEventListener('click', e=>{
-  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess],[data-suggest],[data-aiprovider]');
+  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess]');
   if(!t) return;
   const d=t.dataset;
 
@@ -2898,8 +2653,6 @@ document.addEventListener('click', e=>{
   if(d.delloan){ delEntity('loan', d.delloan); return; }
   if(d.loanpay){ openLoanPay(d.loanpay); return; }
   if(d.loanfilter){ state.loanFilter=d.loanfilter; render(); return; }
-  if(d.suggest){ sendAdvisor(d.suggest); return; }
-  if(d.aiprovider){ setProvider(d.aiprovider); render(); return; }
   if(d.dataaccess){ toggleDataAccess(d.dataaccess); return; }
   if(d.loandir){ state.form.dir=d.loandir;
     $$('#loanDirSeg [data-loandir]').forEach(b=>b.classList.toggle('active', b===t));
@@ -2943,13 +2696,6 @@ document.addEventListener('click', e=>{
       case 'copycode': if(Cloud.inviteCode) copyText(Cloud.inviteCode,'Cod copiat'); break;
       case 'removemember': removeMember(d.uid); break;
       case 'loadadmin': loadAdmin(); break;
-      case 'clearchat': state.advisorMsgs=[]; saveChat([]); render(); toast('Conversație ștearsă'); break;
-      case 'saveaikey':{
-        const k=($('#aiKeyInput')?.value||'').trim();
-        const m=$('#aiModelSelect')?.value||'gpt-4o-mini';
-        setAIKey(k); setAIModel(m);
-        toast(k?'Cheie OpenAI salvată':'Cheie ștearsă'); render();
-        break; }
       case 'showlogin':
         Store.del('casa_local_mode');
         if(typeof firebase==='undefined'){ toast('Fără conexiune la internet — reîncearcă','err'); }
