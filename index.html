@@ -739,6 +739,7 @@ const Store = (() => {
 })();
 const DBKEY = 'casa_finance_v1';
 const VIEWKEY = 'casa_view_v1'; // ultimul tab vizitat, ca refresh-ul să te lase unde erai
+const APP_VERSION = '2026.07 · Gemini'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
 
 /* ---------- CONFIG: categorii ---------- */
 const INCOME_CATS = [
@@ -1969,7 +1970,7 @@ async function callOpenAI(key, model, msgs){
     if(res.status===401) msg='Cheie OpenAI invalidă — verific-o în Setări.';
     else if(res.status===429){
       if(/quota|insufficient|billing/i.test(code+' '+apiMsg))
-        msg='Contul OpenAI nu are credit pe API. Adaugă o metodă de plată și credit pe platform.openai.com → Billing. Atenție: abonamentul ChatGPT (Plus/Pro) NU include API-ul — se plătește separat, la consum.';
+        msg='Contul OpenAI nu are credit pe API. Adaugă credit pe platform.openai.com → Billing (separat de abonamentul ChatGPT) SAU comută pe Google Gemini (gratis) din Setări → Consilier AI.';
       else msg='Prea multe cereri prea repede — așteaptă câteva secunde și reîncearcă.';
     }
     else if(res.status===404 || /model/i.test(code+' '+apiMsg))
@@ -2254,7 +2255,8 @@ function viewSettings(){
   </div>
 
   <div style="margin-top:22px;padding:16px;text-align:center;color:var(--ink-4);font-size:12px">
-    Casă · Finanțele familiei — datele sunt stocate ${Store.persistent?'local, pe acest dispozitiv':'în memorie (activează stocarea locală pentru a le păstra)'}.
+    Casă · Finanțele familiei — datele sunt stocate ${Store.persistent?'local, pe acest dispozitiv':'în memorie (activează stocarea locală pentru a le păstra)'}.<br>
+    <span style="opacity:.7">versiune ${APP_VERSION}</span>
   </div>
   <input type="file" id="importFile" accept="application/json" style="display:none">`;
 }
