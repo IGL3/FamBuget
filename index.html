@@ -578,6 +578,14 @@ html.dark.anim-bg.abg-aurora .ab{animation-play-state:running}
 #fluidbg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.38),rgba(0,0,0,.14) 30%,rgba(0,0,0,.14) 68%,rgba(0,0,0,.42))}
 html.dark.anim-bg.abg-fluid #fluidbg{opacity:1}
 
+/* banner „versiune nouă disponibilă” (jos, deasupra barei de navigare) */
+.upd-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 22px);z-index:80;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 15px;border-radius:16px;background:var(--surface-3);border:1px solid var(--line-strong);box-shadow:var(--shadow-lg);font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap}
+.upd-bar[hidden]{display:none}
+.upd-bar .upd-go{padding:6px 13px;border-radius:10px;background:var(--brand);color:#fff;font-weight:700;font-size:12.5px}
+.upd-bar .upd-x{color:var(--ink-3);padding:2px 6px;font-size:13px}
+/* pe mobil o ridicăm deasupra butonului „+” flotant, ca să nu se suprapună */
+@media(max-width:820px){ .upd-bar{bottom:calc(env(safe-area-inset-bottom) + 150px)} }
+
 /* selector stil fundal (Fluid / Aurora) în Setări */
 .abg-seg{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px;flex:0 0 auto}
 .abg-seg button{padding:5px 11px;border-radius:8px;font-size:12px;font-weight:600;color:var(--ink-3);transition:.14s}
@@ -714,6 +722,11 @@ html.dark.anim-bg.abg-fluid #fluidbg{opacity:1}
 
 <!-- BOTTOM NAV (mobile) -->
 <nav class="botnav" id="botnav"></nav>
+<div id="updBar" class="upd-bar" hidden>
+  <span>Versiune nouă</span>
+  <button class="upd-go" data-action="reload">Reîncarcă</button>
+  <button class="upd-x" data-action="dismissupd" aria-label="Închide">✕</button>
+</div>
 
 <!-- FAB -->
 <button class="fab" id="fab" aria-label="Adaugă tranzacție"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -2099,6 +2112,8 @@ function viewSettings(){
   </div>`)}
 
   <div style="margin-top:22px;padding:16px;text-align:center;color:var(--ink-4);font-size:12px">
+    <button class="btn sm" data-action="reload" style="margin-bottom:12px">↻ Reîncarcă aplicația</button>
+    <div style="font-size:11px;opacity:.85;margin-bottom:12px">Adăugată pe ecran nu are buton de refresh — folosește-l pe acesta ca să iei cea mai nouă versiune.</div>
     Casă · Finanțele familiei — datele sunt stocate ${Store.persistent?'local, pe acest dispozitiv':'în memorie (activează stocarea locală pentru a le păstra)'}.<br>
     <span style="opacity:.7">versiune ${APP_VERSION}</span>
   </div>
@@ -2742,6 +2757,32 @@ function themePickerHTML(){
    PWA
    ============================================================ */
 let deferredPrompt=null;
+// Reîncarcă forțat, sărind peste orice cache (util în modul „adăugată pe ecran”, unde nu există buton de refresh)
+async function forceReload(){
+  try{ toast('Se reîncarcă…'); }catch(e){}
+  try{
+    if('serviceWorker' in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister()));
+    }
+    if(window.caches){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+  }catch(e){}
+  location.replace(location.pathname + '?v=' + Date.now());  // cache-bust → ia fișierul nou de pe server
+}
+// Verifică discret dacă pe server e o versiune mai nouă; dacă da, arată bannerul „Versiune nouă disponibilă”
+let _updLast=0;
+async function checkForUpdate(){
+  if(!location.protocol.startsWith('http')) return;
+  const now=Date.now();
+  if(now-_updLast < 45000) return;                 // cel mult o dată la ~45s
+  _updLast=now;
+  try{
+    const res=await fetch(location.pathname + '?_ck=' + now, {cache:'no-store'});
+    if(!res.ok) return;
+    const m=(await res.text()).match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+    if(m && m[1] && m[1]!==APP_VERSION){ const bar=$('#updBar'); if(bar) bar.hidden=false; }
+  }catch(e){/* offline / blocat — ignorăm */}
+}
 function setupPWA(){
   const manifest={
     name:'Casă — Finanțele familiei', short_name:'Casă', start_url:'.', display:'standalone',
@@ -2978,6 +3019,8 @@ document.addEventListener('click', e=>{
       case 'removepin': removePin(); break;
       case 'import': if(!canManageData()){ toast('Doar creatorul familiei poate importa date','err'); break; } doImport(); break;
       case 'cleardemo': if(!canManageData()){ toast('Doar creatorul familiei poate șterge datele','err'); break; } clearDemo(); break;
+      case 'reload': forceReload(); break;
+      case 'dismissupd': { const b=$('#updBar'); if(b) b.hidden=true; break; }
       case 'logout': if(Cloud.auth){ Cloud.auth.signOut(); toast('Deconectat'); } break;
       case 'copycode': if(Cloud.inviteCode) copyText(Cloud.inviteCode,'Cod copiat'); break;
       case 'removemember': removeMember(d.uid); break;
@@ -3424,6 +3467,11 @@ function boot(){
   finally{
     const app=$('#app'); if(app) app.classList.add('ready');  // dezvăluie mereu UI-ul
     try{ setupPWA(); }catch(e){ console.warn('pwa skipped', e); } // PWA nu blochează niciodată randarea
+    // verifică versiunea nouă la pornire și de fiecare dată când revii în aplicație (util pe telefon, unde nu ai refresh)
+    try{
+      setTimeout(checkForUpdate, 4000);
+      document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) checkForUpdate(); });
+    }catch(e){}
     // scripturile Firebase sunt defer → pornim cloud-ul când sunt gata; fără net, aplicația merge local
     try{ if(typeof firebase!=='undefined') initCloud(); else window.addEventListener('load', initCloud); }catch(e){ console.warn('cloud skipped', e); }
   }
