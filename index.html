@@ -562,14 +562,26 @@ html.dark .code-badge{color:var(--brand)}
 /* clip-path + isolation: pe iOS Safari `overflow:hidden` NU taie mereu straturile compozitate
    (blur/mix-blend/transform), iar petele animate creau derulare goală sub conținut; le tăiem dur */
 #aurora{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;clip-path:inset(0);isolation:isolate;opacity:0;transition:opacity .7s ease;contain:strict}
-html.dark.anim-bg #aurora{opacity:1}
-.ab{position:absolute;border-radius:50%;filter:blur(56px);opacity:.62;will-change:transform;mix-blend-mode:screen}
+html.dark.anim-bg.abg-aurora #aurora{opacity:1}
+.ab{position:absolute;border-radius:50%;filter:blur(56px);opacity:.62;will-change:transform;mix-blend-mode:screen;animation-play-state:paused}
+html.dark.anim-bg.abg-aurora .ab{animation-play-state:running}
 .b1{width:62vw;height:62vw;left:-12vw;top:-10vh;background:radial-gradient(circle,var(--aura1,rgba(66,135,255,.55)),transparent 70%);animation:aur1 18s ease-in-out infinite alternate}
 .b2{width:58vw;height:58vw;right:-16vw;top:14vh;background:radial-gradient(circle,var(--aura2,rgba(155,105,255,.52)),transparent 70%);animation:aur2 23s ease-in-out infinite alternate}
 .b3{width:54vw;height:54vw;left:6vw;bottom:-16vh;background:radial-gradient(circle,var(--aura3,rgba(240,110,180,.5)),transparent 70%);animation:aur3 20s ease-in-out infinite alternate}
 @keyframes aur1{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(24vw,22vh,0) scale(1.25)}}
 @keyframes aur2{from{transform:translate3d(0,0,0) scale(1.12)}to{transform:translate3d(-26vw,18vh,0) scale(1)}}
 @keyframes aur3{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(20vw,-20vh,0) scale(1.3)}}
+
+/* fundal animat „Fluid” (vopsea în mișcare, WebGL) — al doilea stil, ales din Setări */
+#fluidbg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;clip-path:inset(0);opacity:0;transition:opacity .7s ease;contain:strict}
+#fluidbg canvas{width:100%;height:100%;display:block}
+#fluidbg::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.38),rgba(0,0,0,.14) 30%,rgba(0,0,0,.14) 68%,rgba(0,0,0,.42))}
+html.dark.anim-bg.abg-fluid #fluidbg{opacity:1}
+
+/* selector stil fundal (Fluid / Aurora) în Setări */
+.abg-seg{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px;flex:0 0 auto}
+.abg-seg button{padding:5px 11px;border-radius:8px;font-size:12px;font-weight:600;color:var(--ink-3);transition:.14s}
+.abg-seg button.on{background:var(--brand-soft);color:var(--brand)}
 
 /* accordion (secțiuni pliabile în Setări) */
 .acc{border-bottom:1px solid var(--line)}
@@ -621,6 +633,7 @@ html.dark.anim-bg #aurora{opacity:1}
 
 <!-- FUNDAL ANIMAT (aurora) — activabil din Setări, doar pe teme întunecate -->
 <div id="aurora" aria-hidden="true"><span class="ab b1"></span><span class="ab b2"></span><span class="ab b3"></span></div>
+<div id="fluidbg" aria-hidden="true"></div>
 
 <!-- LOCK SCREEN -->
 <div class="lock hidden" id="lockScreen">
@@ -752,7 +765,7 @@ const Store = (() => {
 })();
 const DBKEY = 'casa_finance_v1';
 const VIEWKEY = 'casa_view_v1'; // ultimul tab vizitat, ca refresh-ul să te lase unde erai
-const APP_VERSION = '2026.07'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
+const APP_VERSION = '2026.07.2'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
 
 /* ---------- CONFIG: categorii ---------- */
 const INCOME_CATS = [
@@ -2024,9 +2037,18 @@ function viewSettings(){
     </div>
     <div class="set-row">
       <div class="set-ic">${ic('<path d="M12 3a9 9 0 1 0 9 9c0-.5 0-1-.1-1.5A5 5 0 0 1 13 5.1C12.4 5 11.7 3 12 3z"/><circle cx="9" cy="13" r="1"/><circle cx="14" cy="16" r="1"/><circle cx="15" cy="10" r="1"/>')}</div>
-      <div class="set-meta"><div class="set-title">Fundal animat (aurora)</div><div class="set-desc">Aurora subtilă în mișcare · doar pe teme întunecate · acest dispozitiv</div></div>
+      <div class="set-meta"><div class="set-title">Fundal animat</div><div class="set-desc">Efect în mișcare pe fundal · doar pe teme întunecate · acest dispozitiv</div></div>
       ${sw(!!s.animbg,'animbg')}
     </div>
+    ${s.animbg?`
+    <div class="set-row">
+      <div class="set-ic">${ic('<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0C6 9.5 12 3 12 3z"/>')}</div>
+      <div class="set-meta"><div class="set-title">Stil fundal</div><div class="set-desc">Fluid = vopsea în mișcare · Aurora = pete difuze</div></div>
+      <div class="abg-seg">
+        <button data-animstyle="fluid" class="${(s.animstyle||'fluid')==='fluid'?'on':''}">Fluid</button>
+        <button data-animstyle="aurora" class="${(s.animstyle||'fluid')==='aurora'?'on':''}">Aurora</button>
+      </div>
+    </div>`:''}
   </div>`)}
 
   ${accSection('ai','Analiză AI', viewAI())}
@@ -2487,10 +2509,209 @@ function applyTheme(){
   const mt=document.querySelector('meta[name="theme-color"]'); if(mt) mt.setAttribute('content',meta);
   const lbl=$('#themeLbl'); if(lbl) lbl.textContent='Temă: '+THEME_META[name].label;
   const ic=$('#themeIc'); if(ic) ic.innerHTML='<circle cx="13.5" cy="6.5" r="1.2"/><circle cx="17.5" cy="10.5" r="1.2"/><circle cx="8.5" cy="7.5" r="1.2"/><circle cx="6.5" cy="12.5" r="1.2"/><path d="M12 3a9 9 0 0 0 0 18c1.4 0 2-1 2-2 0-1.3-1-1.5-1-2.5 0-.8.7-1.5 1.6-1.5H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/>';
+  FluidBG.sync();   // pornește/oprește/recolorează fundalul Fluid la schimbarea temei
 }
+/* ---- Fundal „Fluid” — adaptat după componenta open-source „Balatro” din ReactBits (licență MIT),
+        portată din React+ogl în WebGL pur, fără dependințe ---- */
+const FLUID_VERT = `
+attribute vec2 uv;
+attribute vec2 position;
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = vec4(position, 0, 1);
+}
+`;
+const FLUID_FRAG = `
+precision highp float;
+
+#define PI 3.14159265359
+
+uniform float iTime;
+uniform vec3 iResolution;
+uniform float uSpinRotation;
+uniform float uSpinSpeed;
+uniform vec2 uOffset;
+uniform vec4 uColor1;
+uniform vec4 uColor2;
+uniform vec4 uColor3;
+uniform float uContrast;
+uniform float uLighting;
+uniform float uSpinAmount;
+uniform float uPixelFilter;
+uniform float uSpinEase;
+uniform bool uIsRotate;
+uniform vec2 uMouse;
+
+varying vec2 vUv;
+
+vec4 effect(vec2 screenSize, vec2 screen_coords) {
+    float pixel_size = length(screenSize.xy) / uPixelFilter;
+    vec2 uv = (floor(screen_coords.xy * (1.0 / pixel_size)) * pixel_size - 0.5 * screenSize.xy) / length(screenSize.xy) - uOffset;
+    float uv_len = length(uv);
+
+    float speed = (uSpinRotation * uSpinEase * 0.2);
+    if(uIsRotate){
+       speed = iTime * speed;
+    }
+    speed += 302.2;
+
+    float mouseInfluence = (uMouse.x * 2.0 - 1.0);
+    speed += mouseInfluence * 0.1;
+
+    float new_pixel_angle = atan(uv.y, uv.x) + speed - uSpinEase * 20.0 * (uSpinAmount * uv_len + (1.0 - uSpinAmount));
+    vec2 mid = (screenSize.xy / length(screenSize.xy)) / 2.0;
+    uv = (vec2(uv_len * cos(new_pixel_angle) + mid.x, uv_len * sin(new_pixel_angle) + mid.y) - mid);
+
+    uv *= 30.0;
+    float baseSpeed = iTime * uSpinSpeed;
+    speed = baseSpeed + mouseInfluence * 2.0;
+
+    vec2 uv2 = vec2(uv.x + uv.y);
+
+    for(int i = 0; i < 5; i++) {
+        uv2 += sin(max(uv.x, uv.y)) + uv;
+        uv += 0.5 * vec2(
+            cos(5.1123314 + 0.353 * uv2.y + speed * 0.131121),
+            sin(uv2.x - 0.113 * speed)
+        );
+        uv -= cos(uv.x + uv.y) - sin(uv.x * 0.711 - uv.y);
+    }
+
+    float contrast_mod = (0.25 * uContrast + 0.5 * uSpinAmount + 1.2);
+    float paint_res = min(2.0, max(0.0, length(uv) * 0.035 * contrast_mod));
+    float c1p = max(0.0, 1.0 - contrast_mod * abs(1.0 - paint_res));
+    float c2p = max(0.0, 1.0 - contrast_mod * abs(paint_res));
+    float c3p = 1.0 - min(1.0, c1p + c2p);
+    float light = (uLighting - 0.2) * max(c1p * 5.0 - 4.0, 0.0) + uLighting * max(c2p * 5.0 - 4.0, 0.0);
+
+    return (0.3 / uContrast) * uColor1 + (1.0 - 0.3 / uContrast) * (uColor1 * c1p + uColor2 * c2p + vec4(c3p * uColor3.rgb, c3p * uColor1.a)) + light;
+}
+
+void main() {
+    vec2 uv = vUv * iResolution.xy;
+    gl_FragColor = effect(iResolution.xy, uv);
+}
+`;
+const FluidBG = {
+  canvas:null, gl:null, uni:{}, raf:0, last:0, failed:false,
+  _resize:null, _mouse:null, _lost:null,
+  // culori pe tema efectivă: c1/c2 = vopsea, c3 = fundalul închis dintre ele
+  colorsFor(eff){
+    if(eff==='revolut') return ['#2b5fe6','#8a4dff','#05070d'];
+    if(eff==='gold')    return ['#c9992e','#7b52c9','#0a0a0a'];
+    return ['#17a37c','#2b5fe6','#071410'];
+  },
+  active(){
+    return !!(DB && DB.settings && DB.settings.animbg) && !this.failed &&
+           ((DB.settings.animstyle||'fluid')==='fluid') &&
+           document.documentElement.classList.contains('dark');
+  },
+  sync(){
+    if(!this.active()){ this.stop(); return; }
+    if(this.canvas){ this.setColors(); return; }   // rulează deja: doar re-colorează după temă
+    this.start();
+  },
+  setColors(){
+    const gl=this.gl; if(!gl) return;
+    const eff=resolveTheme(currentTheme());
+    const v=h=>{const x=h.replace('#','');return [parseInt(x.slice(0,2),16)/255,parseInt(x.slice(2,4),16)/255,parseInt(x.slice(4,6),16)/255,1];};
+    const c=this.colorsFor(eff);
+    gl.uniform4fv(this.uni.uColor1,v(c[0]));
+    gl.uniform4fv(this.uni.uColor2,v(c[1]));
+    gl.uniform4fv(this.uni.uColor3,v(c[2]));
+  },
+  start(){
+    if(this.canvas || this.failed) return;
+    const host=document.getElementById('fluidbg'); if(!host) return;
+    try{
+      const c=document.createElement('canvas');
+      const gl=c.getContext('webgl',{alpha:false,antialias:false,depth:false,stencil:false,powerPreference:'low-power'})
+             ||c.getContext('experimental-webgl');
+      if(!gl) throw new Error('nogl');
+      const mk=(type,src)=>{const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
+        if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)||'shader'); return s;};
+      const p=gl.createProgram();
+      gl.attachShader(p,mk(gl.VERTEX_SHADER,FLUID_VERT));
+      gl.attachShader(p,mk(gl.FRAGMENT_SHADER,FLUID_FRAG));
+      gl.linkProgram(p);
+      if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)||'link');
+      gl.useProgram(p);
+      // un singur triunghi care acoperă tot ecranul (poziție + uv intercalate)
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,0,0, 3,-1,2,0, -1,3,0,2]), gl.STATIC_DRAW);
+      const aPos=gl.getAttribLocation(p,'position'), aUv=gl.getAttribLocation(p,'uv');
+      gl.enableVertexAttribArray(aPos); gl.vertexAttribPointer(aPos,2,gl.FLOAT,false,16,0);
+      gl.enableVertexAttribArray(aUv);  gl.vertexAttribPointer(aUv,2,gl.FLOAT,false,16,8);
+      const U={};
+      ['iTime','iResolution','uSpinRotation','uSpinSpeed','uOffset','uColor1','uColor2','uColor3',
+       'uContrast','uLighting','uSpinAmount','uPixelFilter','uSpinEase','uIsRotate','uMouse']
+        .forEach(n=>U[n]=gl.getUniformLocation(p,n));
+      this.canvas=c; this.gl=gl; this.uni=U;
+      gl.uniform1f(U.uSpinRotation,-2); gl.uniform1f(U.uSpinSpeed,7);
+      gl.uniform2f(U.uOffset,0,0);
+      gl.uniform1f(U.uContrast,3.5); gl.uniform1f(U.uLighting,0.4);
+      gl.uniform1f(U.uSpinAmount,0.25); gl.uniform1f(U.uPixelFilter,2000);
+      gl.uniform1f(U.uSpinEase,1); gl.uniform1i(U.uIsRotate,0);
+      gl.uniform2f(U.uMouse,0.5,0.5);
+      this.setColors();
+      const reduce=window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      this._resize=()=>{
+        if(!this.canvas||!this.gl) return;
+        // rezoluție redusă intenționat: efectul e difuz, iar GPU-ul/bateria telefonului respiră
+        const s=Math.min(window.devicePixelRatio||1,1.5)*0.7;
+        const w=Math.max(1,Math.round(window.innerWidth*s)), h=Math.max(1,Math.round(window.innerHeight*s));
+        this.canvas.width=w; this.canvas.height=h;
+        this.gl.viewport(0,0,w,h);
+        this.gl.uniform3f(this.uni.iResolution,w,h,w/h);
+        if(reduce){ this.gl.uniform1f(this.uni.iTime,8); this.gl.drawArrays(this.gl.TRIANGLES,0,3); }
+      };
+      window.addEventListener('resize',this._resize);
+      if(window.matchMedia && matchMedia('(pointer:fine)').matches){
+        this._mouse=e=>{ if(this.gl) this.gl.uniform2f(this.uni.uMouse, e.clientX/window.innerWidth, 1-e.clientY/window.innerHeight); };
+        document.addEventListener('mousemove',this._mouse,{passive:true});
+      }
+      this._lost=e=>{ e.preventDefault(); this.stop(); setTimeout(()=>this.sync(),1500); };
+      c.addEventListener('webglcontextlost',this._lost);
+      host.appendChild(c);
+      this._resize();
+      if(reduce){ return; }                        // reduce mișcarea: un singur cadru static
+      const loop=t=>{
+        this.raf=requestAnimationFrame(loop);
+        if(t-this.last<31) return;                 // plafonat la ~30fps, suficient și blând cu bateria
+        this.last=t;
+        this.gl.uniform1f(this.uni.iTime,t*0.001);
+        this.gl.drawArrays(this.gl.TRIANGLES,0,3);
+      };
+      this.raf=requestAnimationFrame(loop);
+    }catch(err){
+      this.failed=true;                            // fără WebGL → applyAnimBg cade pe stilul Aurora
+      this.stop();
+      applyAnimBg();
+    }
+  },
+  stop(){
+    if(this.raf){ cancelAnimationFrame(this.raf); this.raf=0; }
+    if(this._resize){ window.removeEventListener('resize',this._resize); this._resize=null; }
+    if(this._mouse){ document.removeEventListener('mousemove',this._mouse); this._mouse=null; }
+    if(this.canvas){
+      if(this._lost) this.canvas.removeEventListener('webglcontextlost',this._lost);
+      try{ const ext=this.gl&&this.gl.getExtension('WEBGL_lose_context'); if(ext) ext.loseContext(); }catch(e){}
+      this.canvas.remove();
+    }
+    this._lost=null; this.canvas=null; this.gl=null; this.uni={}; this.last=0;
+  }
+};
 function applyAnimBg(){
-  // fundal animat „aurora” — local, per dispozitiv, oprit implicit; se vede doar pe teme întunecate
-  document.documentElement.classList.toggle('anim-bg', !!(DB && DB.settings && DB.settings.animbg));
+  // fundal animat — local, per dispozitiv, oprit implicit; se vede doar pe teme întunecate
+  const on = !!(DB && DB.settings && DB.settings.animbg);
+  let style = (DB && DB.settings && DB.settings.animstyle) || 'fluid';
+  if(style==='fluid' && FluidBG.failed) style='aurora';
+  const html=document.documentElement;
+  html.classList.toggle('anim-bg', on);
+  html.classList.toggle('abg-fluid', on && style==='fluid');
+  html.classList.toggle('abg-aurora', on && style==='aurora');
+  FluidBG.sync();
 }
 function setTheme(name){
   if(!THEME_ORDER.includes(name)) name='auto';
@@ -2692,11 +2913,12 @@ function setActiveAmong(btn,attr){
 function removePin(){ DB.settings.pin=null; saveDB(); render(); toast('PIN eliminat'); }
 
 document.addEventListener('click', e=>{
-  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess],[data-accbtn]');
+  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess],[data-accbtn],[data-animstyle]');
   if(!t) return;
   const d=t.dataset;
 
   if(d.accbtn!==undefined){ const acc=t.closest('[data-acc]'); if(acc){ const id=acc.dataset.acc; const open=!acc.classList.contains('open'); state.openAcc=state.openAcc||{}; state.openAcc[id]=open; acc.classList.toggle('open',open); if(id==='admin'&&open) loadAdmin(); } return; }
+  if(d.animstyle){ DB.settings.animstyle=d.animstyle; saveDB(); applyAnimBg(); render(); return; }
   if(d.nav){ go(d.nav); return; }
   if(d.add){ openForm(d.add); return; }
   if(d.kindswitch){ // comută Cheltuială ↔ Venit în formularul de adăugare, păstrând suma tastată
