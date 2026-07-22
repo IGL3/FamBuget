@@ -1912,7 +1912,7 @@ function viewAdvisor(){
       <textarea id="chatInput" rows="1" placeholder="Scrie o întrebare…" ${state.advisorBusy?'disabled':''}></textarea>
       <button class="chat-send" id="chatSend" aria-label="Trimite" ${state.advisorBusy?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
     </div>
-    <div style="font-size:11px;color:var(--ink-4);text-align:center;margin-top:2px">La fiecare întrebare, un rezumat al finanțelor voastre e trimis către OpenAI ca răspunsul să fie relevant.</div>
+    <div style="font-size:11px;color:var(--ink-4);text-align:center;margin-top:2px">La fiecare întrebare, un rezumat al finanțelor voastre e trimis către ${esc(AI_PROVIDER_NAME[prov])} ca răspunsul să fie relevant.</div>
   </div>`;
 }
 function hookAdvisor(){
@@ -1998,7 +1998,13 @@ async function callGemini(key, model, msgs){
     let msg=apiMsg||('Eroare '+res.status);
     if(res.status===400 && /API key not valid|API_KEY_INVALID/i.test(apiMsg+' '+st)) msg='Cheie Gemini invalidă — verific-o în Setări.';
     else if(res.status===403) msg='Cheia Gemini nu are acces (activează „Generative Language API" în Google AI Studio).';
-    else if(res.status===429) msg='Limita gratuită Gemini atinsă momentan — așteaptă un minut și reîncearcă.';
+    else if(res.status===429){
+      const daily=/per day|per-day|daily|GenerateRequestsPerDay/i.test(apiMsg);
+      msg=(daily
+        ? 'Ai atins limita gratuită Gemini pe ziua de azi pentru modelul „'+model+'". Încearcă alt model (ex. gemini-1.5-flash) din selectorul de sus, sau revino mâine.'
+        : 'Limită Gemini pe minut atinsă pentru „'+model+'". Așteaptă ~1 minut, sau alege gemini-1.5-flash din selectorul de sus.')
+        + (apiMsg?(' · detaliu: '+apiMsg.slice(0,120)):'');
+    }
     else if(res.status===404 || /not found|not supported/i.test(apiMsg)) msg='Modelul „'+model+'" nu e disponibil — alege alt model din selectorul de sus.';
     throw new Error(msg);
   }
