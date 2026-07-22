@@ -543,6 +543,16 @@ html.dark .code-badge{color:var(--brand)}
 .two-col{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
 .three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 
+/* accordion (secțiuni pliabile în Setări) */
+.acc{border-bottom:1px solid var(--line)}
+.acc-head{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 4px;text-align:left;transition:.14s}
+.acc-head:hover h3{color:var(--brand)}
+.acc-head h3{font-size:15.5px;font-weight:700;transition:.14s}
+.acc-chev{width:20px;height:20px;color:var(--ink-3);flex:0 0 20px;transition:transform .22s}
+.acc.open .acc-chev{transform:rotate(180deg);color:var(--brand)}
+.acc-body{display:none;padding:2px 0 18px}
+.acc.open .acc-body{display:block}
+
 /* ============================== RESPONSIVE ============================== */
 @media(max-width:1160px){ .stat-grid.five{grid-template-columns:repeat(3,1fr)} }
 @media(max-width:960px){
@@ -801,7 +811,6 @@ const NAV = [
   {id:'budgets',   label:'Bugete',   svg:'budget'},
   {id:'savings',   label:'Economii', svg:'savings'},
   {id:'loans',     label:'Împrumuturi', svg:'loans'},
-  {id:'ai',        label:'Analiză AI', svg:'ai'},
   {id:'reports',   label:'Rapoarte', svg:'reports'}
 ];
 const NAV_SVG = {
@@ -827,7 +836,7 @@ function renderNav(){
     <button class="nav-item ${state.view===n.id?'active':''}" data-nav="${n.id}">
       ${svgIcon(n.id)}<span>${n.label}</span>${badge(n.id)}
     </button>`).join('');
-  const bn = [['dashboard','Dashboard'],['expenses','Cheltuieli'],['loans','Datorii'],['bills','Facturi'],['budgets','Bugete'],['ai','AI'],['settings','Setări']];
+  const bn = [['dashboard','Dashboard'],['expenses','Cheltuieli'],['loans','Datorii'],['bills','Facturi'],['budgets','Bugete'],['settings','Setări']];
   $('#botnav').innerHTML = bn.map(([id,l])=>`
     <button data-nav="${id}" class="${state.view===id?'active':''}">
       ${svgIcon(id)}<span>${l}</span>${badge(id)}
@@ -843,7 +852,6 @@ const TITLES = {
   budgets:['Bugete','Cât ți-ai propus vs cât ai cheltuit'],
   savings:['Economii & obiective','Fondul de urgență și țintele voastre'],
   loans:['Împrumuturi','Datorii și bani de recuperat, cu scadențe'],
-  ai:['Analiză AI','Ce spun datele despre banii voștri'],
   reports:['Rapoarte','Sinteze lunare, trimestriale, anuale'],
   settings:['Setări','Cont, securitate, date']
 };
@@ -866,7 +874,7 @@ function render(){
   const v = $('#view');
   const map = {
     dashboard:viewDashboard, income:viewIncome, expenses:viewExpenses, bills:viewBills,
-    budgets:viewBudgets, savings:viewSavings, loans:viewLoans, ai:viewAI, reports:viewReports, settings:viewSettings
+    budgets:viewBudgets, savings:viewSavings, loans:viewLoans, reports:viewReports, settings:viewSettings
   };
   destroyCharts();
   v.innerHTML = (map[state.view]||viewDashboard)();
@@ -1930,13 +1938,23 @@ function hookReports(){
 /* ============================================================
    SETĂRI
    ============================================================ */
+/* secțiune pliabilă: închisă implicit, se deschide din săgeată */
+function accSection(id, title, bodyHTML){
+  const open = !!(state.openAcc && state.openAcc[id]);
+  return `<div class="acc ${open?'open':''}" data-acc="${id}">
+    <button class="acc-head" type="button" data-accbtn><h3>${title}</h3>
+      <svg class="acc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="acc-body">${bodyHTML}</div>
+  </div>`;
+}
 function viewSettings(){
   const s=DB.settings;
   const ic=(p)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
   const sw=(on,key)=>`<div class="switch ${on?'on':''}" data-toggle="${key}" role="switch" aria-checked="${on?'true':'false'}"></div>`;
   return `
   ${cloudSettingsHTML(ic)}
-  <div class="section-head"><h3>Familia</h3><div class="line"></div></div>
+  ${accSection('family','Familia', `
   <div class="set-group">
     <div class="set-row">
       <div class="set-ic" style="background:var(--u1-soft)"><span style="font-size:16px">👤</span></div>
@@ -1950,16 +1968,16 @@ function viewSettings(){
     </div>
     <div class="set-row">
       <div class="set-ic">👨‍👩‍👧</div>
-      <div class="set-meta"><div class="set-title">Componență</div><div class="set-desc">Folosită în raportul pentru AI</div></div>
+      <div class="set-meta"><div class="set-title">Componență</div><div class="set-desc">Folosită în analiza AI</div></div>
       <div style="display:flex;gap:8px;align-items:center">
         <input class="field-input" type="number" min="1" style="width:58px;text-align:center" id="numAdults" value="${s.adults??2}"> adulți
         <input class="field-input" type="number" min="0" style="width:58px;text-align:center" id="numChildren" value="${s.children??1}"> copii
       </div>
     </div>
   </div>
-  <button class="btn primary sm" data-action="savefamily" style="margin-top:12px">Salvează familia</button>
+  <button class="btn primary sm" data-action="savefamily" style="margin-top:12px">Salvează familia</button>`)}
 
-  <div class="section-head"><h3>Aspect & experiență</h3><div class="line"></div></div>
+  ${accSection('appearance','Aspect & experiență', `
   <div class="set-title" style="margin:2px 2px 9px">Temă <span style="color:var(--ink-4);font-weight:400">· doar pe acest dispozitiv</span></div>
   ${themePickerHTML()}
   <div class="set-group" style="margin-top:14px">
@@ -1973,9 +1991,11 @@ function viewSettings(){
       <div class="set-meta"><div class="set-title">Notificări scadențe</div><div class="set-desc">Alertă când o factură se apropie</div></div>
       ${sw(s.notif!==false,'notif')}
     </div>
-  </div>
+  </div>`)}
 
-  <div class="section-head"><h3>Securitate</h3><div class="line"></div></div>
+  ${accSection('ai','Analiză AI', viewAI())}
+
+  ${accSection('security','Securitate', `
   <div class="set-group">
     <div class="set-row">
       <div class="set-ic">${ic('<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>')}</div>
@@ -1987,10 +2007,9 @@ function viewSettings(){
       <div class="set-meta"><div class="set-title">Elimină PIN-ul</div><div class="set-desc">Renunță la blocare</div></div>
       <button class="btn sm danger" data-action="removepin">Elimină</button>
     </div>`:''}
-  </div>
+  </div>`)}
 
-  <div class="section-head"><h3>Date & backup</h3><div class="line"></div></div>
-  ${canManageData()?`<div class="set-group">
+  ${accSection('data','Date & backup', canManageData()?`<div class="set-group">
     <div class="set-row">
       <div class="set-ic">${ic('<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>')}</div>
       <div class="set-meta"><div class="set-title">Export backup</div><div class="set-desc">Salvează tot într-un fișier JSON</div></div>
@@ -2008,9 +2027,9 @@ function viewSettings(){
     </div>
   </div>`:`<div class="ai-card warn"><div class="ai-ic">${ic('<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>')}</div>
     <div style="flex:1"><h4>Acces restricționat</h4><p>Export, import și ștergerea datelor sunt disponibile doar creatorului familiei. Cere-i acces din „Cont & sincronizare” dacă ai nevoie.</p></div>
-  </div>`}
+  </div>`)}
 
-  <div class="section-head"><h3>Instalare</h3><div class="line"></div></div>
+  ${accSection('install','Instalare', `
   <div class="ai-card tip">
     <div class="ai-ic">📲</div>
     <div style="flex:1"><h4>Instalează pe telefon</h4>
@@ -2019,7 +2038,7 @@ function viewSettings(){
       <p style="margin-top:6px;color:var(--ink-4)">Se deschide pe tot ecranul, ca o aplicație nativă. Contul și datele rămân — te loghezi o singură dată.</p>
       <button class="btn sm primary" id="installBtn" style="margin-top:10px;display:none">Instalează acum</button>
     </div>
-  </div>
+  </div>`)}
 
   <div style="margin-top:22px;padding:16px;text-align:center;color:var(--ink-4);font-size:12px">
     Casă · Finanțele familiei — datele sunt stocate ${Store.persistent?'local, pe acest dispozitiv':'în memorie (activează stocarea locală pentru a le păstra)'}.<br>
@@ -2629,10 +2648,11 @@ function setActiveAmong(btn,attr){
 function removePin(){ DB.settings.pin=null; saveDB(); render(); toast('PIN eliminat'); }
 
 document.addEventListener('click', e=>{
-  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess]');
+  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess],[data-accbtn]');
   if(!t) return;
   const d=t.dataset;
 
+  if(d.accbtn!==undefined){ const acc=t.closest('[data-acc]'); if(acc){ const id=acc.dataset.acc; const open=!acc.classList.contains('open'); state.openAcc=state.openAcc||{}; state.openAcc[id]=open; acc.classList.toggle('open',open); if(id==='admin'&&open) loadAdmin(); } return; }
   if(d.nav){ go(d.nav); return; }
   if(d.add){ openForm(d.add); return; }
   if(d.kindswitch){ // comută Cheltuială ↔ Venit în formularul de adăugare, păstrând suma tastată
@@ -3066,16 +3086,16 @@ function cloudSettingsHTML(ic){
       <button class="btn sm primary" data-action="showlogin">Conectează-te</button>
     </div>`);
   }
-  let out = `<div class="section-head"><h3>Cont & sincronizare</h3><div class="line"></div></div><div class="set-group">${rows.join('')}</div>`;
+  let out = accSection('cont','Cont & sincronizare', `<div class="set-group">${rows.join('')}</div>`);
   if(isAdminUser()){
-    out += `<div class="section-head"><h3>⚙️ Administrare</h3><div class="line"></div>
-      <button class="btn sm" data-action="loadadmin">Reîncarcă</button></div>
+    out += accSection('admin','⚙️ Administrare', `
     <div class="set-desc" style="margin:0 2px 10px">Toate familiile care folosesc aplicația (vizibil doar pentru tine). Conturile create fără familie apar doar în consola Firebase → Authentication.</div>
-    <div id="adminList"><div style="padding:16px;color:var(--ink-4)"><span class="spin"></span> Se încarcă familiile…</div></div>`;
+    <button class="btn sm" data-action="loadadmin" style="margin-bottom:10px">Reîncarcă</button>
+    <div id="adminList"><div style="padding:16px;color:var(--ink-4)"><span class="spin"></span> Se încarcă familiile…</div></div>`);
   }
   return out;
 }
-function hookSettings(){ if(isAdminUser()) loadAdmin(); }
+function hookSettings(){ if(isAdminUser() && state.openAcc && state.openAcc.admin) loadAdmin(); }
 async function loadAdmin(){
   const box=$('#adminList'); if(!box || !isAdminUser() || !Cloud.db) return;
   box.innerHTML='<div style="padding:16px;color:var(--ink-4)"><span class="spin"></span> Se încarcă familiile…</div>';
