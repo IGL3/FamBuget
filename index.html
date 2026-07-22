@@ -98,9 +98,10 @@ html.dark{
   --shadow-md:0 8px 24px -10px rgba(0,0,0,.6);
   --shadow-lg:0 28px 64px -22px rgba(0,0,0,.75);
 
-  --aura1:rgba(43,199,154,.50);
-  --aura2:rgba(91,140,255,.42);
-  --aura3:rgba(240,123,171,.36);
+  /* culori contrastante față de verdele fundalului/hero, ca petele să se vadă clar */
+  --aura1:rgba(66,135,255,.55);   /* albastru */
+  --aura2:rgba(155,105,255,.52);  /* violet */
+  --aura3:rgba(240,110,180,.50);  /* magenta-roz */
 }
 
 /* ---- Temă REVOLUT: albastru electric pe negru ---- */
@@ -128,9 +129,10 @@ html.dark[data-theme="revolut"]{
   --u2:#f07bab; --u2-soft:#3a1c2b;
   --u3:#8b97b4; --u3-soft:#1a2133;
 
-  --aura1:rgba(61,123,255,.52);
-  --aura2:rgba(43,90,230,.42);
-  --aura3:rgba(140,110,240,.34);
+  /* pe albastrul Revolut: cyan / violet / roz ca să iasă în evidență */
+  --aura1:rgba(60,200,240,.52);   /* cyan */
+  --aura2:rgba(160,110,250,.52);  /* violet */
+  --aura3:rgba(240,110,180,.48);  /* roz */
 }
 html.dark[data-theme="revolut"] .hero{
   background:radial-gradient(600px 300px at 100% 0%, color-mix(in srgb,var(--brand) 30%, transparent), transparent 70%),linear-gradient(160deg,#1b3f96,#0a1230)
@@ -163,9 +165,10 @@ html.dark[data-theme="gold"]{
   --u2:#d98fa8; --u2-soft:#2e1c24;
   --u3:#a99a7e; --u3-soft:#221e17;
 
-  --aura1:rgba(212,175,55,.44);
-  --aura2:rgba(176,137,28,.34);
-  --aura3:rgba(240,217,138,.26);
+  /* pe auriu: tonuri-bijuterie reci (rose/violet/teal) ca să contrasteze cu hero-ul auriu */
+  --aura1:rgba(235,120,165,.44);  /* rose */
+  --aura2:rgba(155,110,235,.44);  /* violet */
+  --aura3:rgba(60,195,180,.42);   /* teal */
 }
 html.dark[data-theme="gold"] .hero{
   background:radial-gradient(600px 300px at 100% 0%, color-mix(in srgb,var(--brand) 24%, transparent), transparent 70%),linear-gradient(160deg,#3c3114,#15100a)
@@ -558,13 +561,13 @@ html.dark .code-badge{color:var(--brand)}
 /* fundal animat „aurora” — doar CSS, doar pe teme întunecate, oprit implicit */
 #aurora{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;opacity:0;transition:opacity .7s ease;contain:strict}
 html.dark.anim-bg #aurora{opacity:1}
-.ab{position:absolute;border-radius:50%;filter:blur(64px);opacity:.5;will-change:transform;mix-blend-mode:screen}
-.b1{width:65vw;height:65vw;left:-12vw;top:-12vh;background:radial-gradient(circle,var(--aura1,rgba(43,199,154,.5)),transparent 70%);animation:aur1 34s ease-in-out infinite alternate}
-.b2{width:60vw;height:60vw;right:-16vw;top:18vh;background:radial-gradient(circle,var(--aura2,rgba(91,140,255,.42)),transparent 70%);animation:aur2 44s ease-in-out infinite alternate}
-.b3{width:55vw;height:55vw;left:8vw;bottom:-16vh;background:radial-gradient(circle,var(--aura3,rgba(240,123,171,.36)),transparent 70%);animation:aur3 39s ease-in-out infinite alternate}
-@keyframes aur1{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(14vw,12vh,0) scale(1.18)}}
-@keyframes aur2{from{transform:translate3d(0,0,0) scale(1.06)}to{transform:translate3d(-16vw,10vh,0) scale(1)}}
-@keyframes aur3{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(10vw,-12vh,0) scale(1.22)}}
+.ab{position:absolute;border-radius:50%;filter:blur(56px);opacity:.62;will-change:transform;mix-blend-mode:screen}
+.b1{width:62vw;height:62vw;left:-12vw;top:-10vh;background:radial-gradient(circle,var(--aura1,rgba(66,135,255,.55)),transparent 70%);animation:aur1 18s ease-in-out infinite alternate}
+.b2{width:58vw;height:58vw;right:-16vw;top:14vh;background:radial-gradient(circle,var(--aura2,rgba(155,105,255,.52)),transparent 70%);animation:aur2 23s ease-in-out infinite alternate}
+.b3{width:54vw;height:54vw;left:6vw;bottom:-16vh;background:radial-gradient(circle,var(--aura3,rgba(240,110,180,.5)),transparent 70%);animation:aur3 20s ease-in-out infinite alternate}
+@keyframes aur1{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(24vw,22vh,0) scale(1.25)}}
+@keyframes aur2{from{transform:translate3d(0,0,0) scale(1.12)}to{transform:translate3d(-26vw,18vh,0) scale(1)}}
+@keyframes aur3{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(20vw,-20vh,0) scale(1.3)}}
 
 /* accordion (secțiuni pliabile în Setări) */
 .acc{border-bottom:1px solid var(--line)}
