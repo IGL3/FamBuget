@@ -649,6 +649,7 @@ html.dark.anim-bg.abg-fluid #fluidbg{opacity:1}
   <div style="text-align:center"><h2>Cont blocat</h2><p id="lockMsg">Introdu codul PIN</p></div>
   <div class="pin-dots" id="pinDots"></div>
   <div class="keypad" id="keypad"></div>
+  <button class="btn primary block hidden" id="faceBtn" data-action="facetry" style="max-width:260px;margin-top:4px">Deblochează cu Face ID</button>
 </div>
 
 <!-- CONECTARE (sincronizare cloud) -->
@@ -778,7 +779,7 @@ const Store = (() => {
 })();
 const DBKEY = 'casa_finance_v1';
 const VIEWKEY = 'casa_view_v1'; // ultimul tab vizitat, ca refresh-ul să te lase unde erai
-const APP_VERSION = '2026.07.4'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
+const APP_VERSION = '2026.07.5'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
 
 /* ---------- CONFIG: categorii ---------- */
 const INCOME_CATS = [
@@ -2078,6 +2079,11 @@ function viewSettings(){
       <div class="set-meta"><div class="set-title">Elimină PIN-ul</div><div class="set-desc">Renunță la blocare</div></div>
       <button class="btn sm danger" data-action="removepin">Elimină</button>
     </div>`:''}
+    ${faceIdSupported()?`<div class="set-row">
+      <div class="set-ic">${ic('<path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 10v1M15 10v1M12 10v3l-1 .8M9.3 15c1.3 1 4.1 1 5.4 0"/>')}</div>
+      <div class="set-meta"><div class="set-title">Deblocare cu Face ID</div><div class="set-desc">${faceIdEnabled()?'Activ pe acest dispozitiv · deschizi aplicația cu fața':'Deschide aplicația cu Face ID / amprentă (acest dispozitiv)'}</div></div>
+      <button class="btn sm ${faceIdEnabled()?'danger':'primary'}" data-action="${faceIdEnabled()?'faceoff':'faceon'}">${faceIdEnabled()?'Dezactivează':'Activează'}</button>
+    </div>${faceIdEnabled()&&!s.pin?`<div class="set-row"><div class="set-meta"><div class="set-desc">💡 Recomandat: pune și un PIN ca rezervă, în caz că Face ID nu merge.</div></div></div>`:''}`:''}
   </div>`)}
 
   ${accSection('data','Date & backup', canManageData()?`<div class="set-group">
@@ -2490,11 +2496,64 @@ function handlePin(){
 }
 function showLock(mode){
   pinMode=mode||'unlock'; pinBuf=''; pinTemp=null;
-  $('#lockMsg').textContent = pinMode==='set'?'Alege un cod PIN (4 cifre)':'Introdu codul PIN';
-  buildKeypad(); renderDots();
+  const hasPin=!!DB.settings.pin;
+  const useKeypad = hasPin || pinMode==='set';
+  const face = pinMode==='unlock' && faceIdEnabled() && faceIdSupported();
+  $('#pinDots').style.display = useKeypad?'':'none';
+  $('#keypad').style.display  = useKeypad?'':'none';
+  const fb=$('#faceBtn'); if(fb) fb.classList.toggle('hidden', !face);
+  $('#lockMsg').textContent = pinMode==='set' ? 'Alege un cod PIN (4 cifre)'
+                            : useKeypad ? 'Introdu codul PIN' : 'Deblochează cu Face ID';
+  if(useKeypad){ buildKeypad(); renderDots(); }
   $('#lockScreen').classList.remove('hidden');
+  if(face) setTimeout(tryFaceUnlock, 300);   // încearcă automat; pe iOS poate cere o atingere pe buton
 }
 function hideLock(){ $('#lockScreen').classList.add('hidden'); pinBuf=''; pinTemp=null; }
+
+/* ---------- Deblocare cu Face ID / amprentă (WebAuthn, per dispozitiv) ---------- */
+const FACE_KEY='casa_faceid';
+function faceIdSupported(){ return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create && window.isSecureContext); }
+function faceIdEnabled(){ return !!Store.get(FACE_KEY); }
+function randBytes(n){ const a=new Uint8Array(n); (crypto||window.crypto).getRandomValues(a); return a; }
+function ab2b64(buf){ let s=''; const b=new Uint8Array(buf); for(let i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); }
+function b642ab(str){ const bin=atob(str); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return a.buffer; }
+async function enableFaceId(){
+  if(!faceIdSupported()){ toast('Dispozitivul/browserul nu suportă Face ID aici','err'); return; }
+  try{
+    const ok = window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable
+      ? await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable() : true;
+    if(!ok){ toast('Nu e configurat Face ID / amprentă pe acest dispozitiv','err'); return; }
+    const cred=await navigator.credentials.create({ publicKey:{
+      challenge:randBytes(32),
+      rp:{ name:'Casă', id:location.hostname },
+      user:{ id:randBytes(16), name:(Cloud.user&&Cloud.user.email)||'casa', displayName:'Casă' },
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{ authenticatorAttachment:'platform', userVerification:'required' },
+      timeout:60000, attestation:'none'
+    }});
+    if(!cred) throw 0;
+    Store.set(FACE_KEY, JSON.stringify({ id: ab2b64(cred.rawId) }));
+    toast('Face ID activat ✓'); render();
+  }catch(e){ toast('Face ID neactivat (anulat sau indisponibil)','err'); }
+}
+function disableFaceId(){ Store.del(FACE_KEY); toast('Face ID dezactivat'); render(); }
+async function faceIdUnlock(){
+  try{
+    const saved=JSON.parse(Store.get(FACE_KEY)||'null'); if(!saved||!saved.id) return false;
+    const a=await navigator.credentials.get({ publicKey:{
+      challenge:randBytes(32),
+      allowCredentials:[{ type:'public-key', id:b642ab(saved.id) }],
+      userVerification:'required', timeout:60000, rpId:location.hostname
+    }});
+    return !!a;
+  }catch(e){ return false; }
+}
+async function tryFaceUnlock(){
+  const fb=$('#faceBtn'); if(fb){ fb.disabled=true; fb.textContent='Se verifică…'; }
+  const ok=await faceIdUnlock();
+  if(ok){ hideLock(); return; }
+  if(fb){ fb.disabled=false; fb.textContent='Deblochează cu Face ID'; }
+}
 
 /* ============================================================
    TEMĂ
@@ -3027,6 +3086,9 @@ document.addEventListener('click', e=>{
       case 'savefamily': saveFamily(); break;
       case 'setpin': case 'changepin': showLock('set'); break;
       case 'removepin': removePin(); break;
+      case 'faceon': enableFaceId(); break;
+      case 'faceoff': disableFaceId(); break;
+      case 'facetry': tryFaceUnlock(); break;
       case 'import': if(!canManageData()){ toast('Doar creatorul familiei poate importa date','err'); break; } doImport(); break;
       case 'cleardemo': if(!canManageData()){ toast('Doar creatorul familiei poate șterge datele','err'); break; } clearDemo(); break;
       case 'reload': forceReload(); break;
@@ -3506,7 +3568,7 @@ function boot(){
     renderNav();
     const savedView = Store.get(VIEWKEY);
     go(TITLES[savedView] ? savedView : 'dashboard');
-    if(DB.settings.pin){ showLock('unlock'); }
+    if(DB.settings.pin || faceIdEnabled()){ showLock('unlock'); }
   }catch(e){ console.error('boot error', e); }
   finally{
     const app=$('#app'); if(app) app.classList.add('ready');  // dezvăluie mereu UI-ul
