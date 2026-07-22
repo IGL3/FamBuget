@@ -1838,9 +1838,10 @@ function openReportModal(){
    nu se sincronizează în cloud și nu ajung în backup/export) */
 const AI_MODELS_BY = {
   openai: ['gpt-4o-mini','gpt-4o','gpt-4.1-mini','gpt-4.1','gpt-4.1-nano','gpt-3.5-turbo'],
-  gemini: ['gemini-2.0-flash','gemini-2.5-flash','gemini-1.5-flash','gemini-1.5-pro','gemini-2.0-flash-lite']
+  // modelele gemini-1.5-* au fost retrase (dau 404); folosim doar modelele 2.x curente
+  gemini: ['gemini-2.5-flash-lite','gemini-2.5-flash','gemini-2.0-flash-lite','gemini-2.0-flash','gemini-2.5-pro']
 };
-const AI_DEFAULT_MODEL = { openai:'gpt-4o-mini', gemini:'gemini-2.0-flash' };
+const AI_DEFAULT_MODEL = { openai:'gpt-4o-mini', gemini:'gemini-2.5-flash-lite' };
 const AI_PROVIDER_NAME = { openai:'OpenAI', gemini:'Google Gemini' };
 function getProvider(){ const p=Store.get('casa_ai_provider'); if(p==='openai'||p==='gemini') return p; return Store.get('casa_openai_key')?'openai':'gemini'; }
 function setProvider(p){ Store.set('casa_ai_provider', p==='gemini'?'gemini':'openai'); }
@@ -1848,7 +1849,12 @@ const aiKeyStore = ()=> getProvider()==='gemini'?'casa_gemini_key':'casa_openai_
 const aiModelStore = ()=> getProvider()==='gemini'?'casa_gemini_model':'casa_openai_model';
 function getAIKey(){ return Store.get(aiKeyStore())||''; }
 function setAIKey(k){ if(k) Store.set(aiKeyStore(),k); else Store.del(aiKeyStore()); }
-function getAIModel(){ return Store.get(aiModelStore())||AI_DEFAULT_MODEL[getProvider()]; }
+function getAIModel(){
+  const m=Store.get(aiModelStore());
+  // model gemini retras (1.5-*) → revino la implicit ca să nu rămâi blocat pe un 404
+  if(getProvider()==='gemini' && /gemini-1\.5/.test(m||'')) return AI_DEFAULT_MODEL.gemini;
+  return m||AI_DEFAULT_MODEL[getProvider()];
+}
 function setAIModel(m){ Store.set(aiModelStore(), m||AI_DEFAULT_MODEL[getProvider()]); }
 function aiModels(){ return AI_MODELS_BY[getProvider()]||AI_MODELS_BY.openai; }
 function loadChat(){ try{ return JSON.parse(Store.get('casa_advisor_chat')||'[]'); }catch(e){ return []; } }
