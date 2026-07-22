@@ -579,11 +579,12 @@ html.dark.anim-bg.abg-aurora .ab{animation-play-state:running}
 html.dark.anim-bg.abg-fluid #fluidbg{opacity:1}
 
 /* banner „versiune nouă disponibilă” (jos, deasupra barei de navigare) */
-.upd-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 22px);z-index:80;display:flex;align-items:center;gap:10px;padding:9px 9px 9px 15px;border-radius:16px;background:var(--surface-3);border:1px solid var(--line-strong);box-shadow:var(--shadow-lg);font-size:13px;font-weight:600;color:var(--ink);max-width:calc(100vw - 24px)}
+.upd-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 22px);z-index:80;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 15px;border-radius:16px;background:var(--surface-3);border:1px solid var(--line-strong);box-shadow:var(--shadow-lg);font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap}
 .upd-bar[hidden]{display:none}
 .upd-bar .upd-go{padding:6px 13px;border-radius:10px;background:var(--brand);color:#fff;font-weight:700;font-size:12.5px}
 .upd-bar .upd-x{color:var(--ink-3);padding:2px 6px;font-size:13px}
-@media(max-width:820px){ .upd-bar{bottom:calc(env(safe-area-inset-bottom) + 78px)} }
+/* pe mobil o ridicăm deasupra butonului „+” flotant, ca să nu se suprapună */
+@media(max-width:820px){ .upd-bar{bottom:calc(env(safe-area-inset-bottom) + 150px)} }
 
 /* selector stil fundal (Fluid / Aurora) în Setări */
 .abg-seg{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px;flex:0 0 auto}
@@ -722,7 +723,7 @@ html.dark.anim-bg.abg-fluid #fluidbg{opacity:1}
 <!-- BOTTOM NAV (mobile) -->
 <nav class="botnav" id="botnav"></nav>
 <div id="updBar" class="upd-bar" hidden>
-  <span>Versiune nouă disponibilă</span>
+  <span>Versiune nouă</span>
   <button class="upd-go" data-action="reload">Reîncarcă</button>
   <button class="upd-x" data-action="dismissupd" aria-label="Închide">✕</button>
 </div>
