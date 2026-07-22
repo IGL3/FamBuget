@@ -633,6 +633,8 @@ html.dark.anim-bg.abg-fluid #fluidbg{opacity:1}
 @media(max-width:400px){ .stat-grid,.stat-grid.five{grid-template-columns:1fr} }
 
 .hidden{display:none!important}
+/* membru fără drept de ștergere: ascundem toate butoanele de ștergere (backup: și funcțiile sunt gardate) */
+html.no-del [data-del],html.no-del [data-delbill],html.no-del [data-delbudget],html.no-del [data-delgoal],html.no-del [data-delloan]{display:none!important}
 .mt0{margin-top:0}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -778,7 +780,7 @@ const Store = (() => {
 })();
 const DBKEY = 'casa_finance_v1';
 const VIEWKEY = 'casa_view_v1'; // ultimul tab vizitat, ca refresh-ul să te lase unde erai
-const APP_VERSION = '2026.07.2'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
+const APP_VERSION = '2026.07.3'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
 
 /* ---------- CONFIG: categorii ---------- */
 const INCOME_CATS = [
@@ -929,6 +931,7 @@ function go(view){
 }
 function render(){
   const v = $('#view');
+  document.documentElement.classList.toggle('no-del', !canDelete());  // ascunde butoanele de ștergere dacă nu are drept
   const map = {
     dashboard:viewDashboard, income:viewIncome, expenses:viewExpenses, bills:viewBills,
     budgets:viewBudgets, savings:viewSavings, loans:viewLoans, reports:viewReports, settings:viewSettings
@@ -2392,11 +2395,13 @@ function afterWrite(msg){ saveDB(); closeModal(); renderNav(); render(); toast(m
 
 /* ---------- ștergere ---------- */
 function delTx(id,kind){
+  if(!canDelete()){ toast('Nu ai drept de ștergere — cere-i acces creatorului familiei','err'); return; }
   const arr = kind==='income'?DB.incomes:DB.expenses;
   const i=arr.findIndex(x=>x.id===id); if(i<0) return;
   arr.splice(i,1); afterWrite('Șters');
 }
 function delEntity(type,id){
+  if(!canDelete()){ toast('Nu ai drept de ștergere — cere-i acces creatorului familiei','err'); return; }
   const map={bill:'bills',budget:'budgets',goal:'goals',loan:'loans'};
   const key=map[type]; if(!key) return;
   DB[key]=DB[key].filter(x=>x.id!==id); afterWrite('Șters');
@@ -2954,7 +2959,7 @@ function setActiveAmong(btn,attr){
 function removePin(){ DB.settings.pin=null; saveDB(); render(); toast('PIN eliminat'); }
 
 document.addEventListener('click', e=>{
-  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess],[data-accbtn],[data-animstyle]');
+  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess],[data-deleteaccess],[data-accbtn],[data-animstyle]');
   if(!t) return;
   const d=t.dataset;
 
@@ -2981,6 +2986,7 @@ document.addEventListener('click', e=>{
   if(d.loanpay){ openLoanPay(d.loanpay); return; }
   if(d.loanfilter){ state.loanFilter=d.loanfilter; render(); return; }
   if(d.dataaccess){ toggleDataAccess(d.dataaccess); return; }
+  if(d.deleteaccess){ toggleDeleteAccess(d.deleteaccess); return; }
   if(d.loandir){ state.form.dir=d.loandir;
     $$('#loanDirSeg [data-loandir]').forEach(b=>b.classList.toggle('active', b===t));
     const lbl=$('#lPersonLbl'); if(lbl) lbl.textContent = d.loandir==='lent'?'Cui i-ai dat':'De la cine ai împrumutat';
@@ -3083,6 +3089,14 @@ function canManageData(){
   if(Cloud.owner && Cloud.user && Cloud.owner===Cloud.user.uid) return true;
   const mi=(Cloud.members||[]).find(m=>Cloud.user && m.uid===Cloud.user.uid);
   return !!(mi && mi.canData);
+}
+// Cine poate ȘTERGE date (tranzacții, facturi, bugete, obiective, împrumuturi):
+// creatorul mereu; membrii înrolați doar dacă primesc drept explicit de la creator.
+function canDelete(){
+  if(!Cloud.active || !Cloud.fid) return true;   // fără sync (doar local) → fără restricții
+  if(Cloud.owner && Cloud.user && Cloud.owner===Cloud.user.uid) return true;
+  const mi=(Cloud.members||[]).find(m=>Cloud.user && m.uid===Cloud.user.uid);
+  return !!(mi && mi.canDelete);
 }
 const showEl = id=>{ const el=document.getElementById(id); if(el) el.classList.remove('hidden'); };
 const hideEl = id=>{ const el=document.getElementById(id); if(el) el.classList.add('hidden'); };
@@ -3214,7 +3228,7 @@ function startSync(fid){
     Cloud.owner=d.owner||null;
     Cloud.members=Object.keys(d.members||{}).map(uid=>({
       uid, email:(info[uid]&&info[uid].email)||'', who:(info[uid]&&info[uid].who)||'',
-      me:uid===Cloud.user.uid, owner:uid===d.owner, canData:(info[uid]&&info[uid].canData)===true
+      me:uid===Cloud.user.uid, owner:uid===d.owner, canData:(info[uid]&&info[uid].canData)===true, canDelete:(info[uid]&&info[uid].canDelete)===true
     })).sort((a,b)=> (b.owner-a.owner)||(b.me-a.me));
     const mi=info[Cloud.user.uid];
     if(mi && mi.who) Cloud.myWho=mi.who;
@@ -3260,6 +3274,15 @@ async function toggleDataAccess(uid){
   try{
     await Cloud.db.collection('families').doc(Cloud.fid).update({['memberInfo.'+uid+'.canData']:val});
     toast(val?'Acces la Date & backup acordat':'Acces la Date & backup retras');
+  }catch(e){ fsErr(e,true); }
+}
+async function toggleDeleteAccess(uid){
+  if(!Cloud.active || Cloud.owner!==Cloud.user.uid || uid===Cloud.user.uid) return;
+  const m=(Cloud.members||[]).find(x=>x.uid===uid); if(!m) return;
+  const val=!m.canDelete;
+  try{
+    await Cloud.db.collection('families').doc(Cloud.fid).update({['memberInfo.'+uid+'.canDelete']:val});
+    toast(val?'Drept de ștergere acordat':'Drept de ștergere retras');
   }catch(e){ fsErr(e,true); }
 }
 function stopSync(){ Cloud.unsubs.forEach(u=>{ try{u();}catch(e){} }); Cloud.unsubs=[]; Cloud.active=false; }
@@ -3374,18 +3397,21 @@ function cloudSettingsHTML(ic){
         const roleLbl = m.who==='sotie'?'Soție':m.who==='sot'?'Soț':(m.who||'membru');
         const isOwnerMe = Cloud.owner===Cloud.user.uid;
         const dataBadge = (m.owner||m.canData)?`<span class="pill pos" style="margin-left:6px">📦 backup</span>`:'';
+        const delBadge = (!m.owner && m.canDelete)?`<span class="pill pos" style="margin-left:6px">🗑️ ștergere</span>`:'';
         rows.push(`<div class="set-row" style="flex-wrap:wrap">
           <div class="uava ${cls}">${esc(init)}</div>
-          <div class="set-meta"><div class="set-title">${esc(m.email||'(fără email)')}${tags}${dataBadge}</div><div class="set-desc">Rol: ${esc(roleLbl)}</div></div>
+          <div class="set-meta"><div class="set-title">${esc(m.email||'(fără email)')}${tags}${dataBadge}${delBadge}</div><div class="set-desc">Rol: ${esc(roleLbl)}</div></div>
           ${(isOwnerMe && !m.me)?`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
             <div style="display:flex;align-items:center;gap:6px" title="Acces la Date & backup"><span style="font-size:11px;color:var(--ink-4)">Date & backup</span><div class="switch ${m.canData?'on':''}" data-dataaccess="${esc(m.uid)}"></div></div>
+            <div style="display:flex;align-items:center;gap:6px" title="Poate șterge tranzacții, facturi, bugete, obiective, împrumuturi"><span style="font-size:11px;color:var(--ink-4)">Poate șterge</span><div class="switch ${m.canDelete?'on':''}" data-deleteaccess="${esc(m.uid)}"></div></div>
             <button class="btn sm danger" data-action="removemember" data-uid="${esc(m.uid)}">Scoate</button>
           </div>`:''}
         </div>`);
       });
       const gate = Cloud.owner===Cloud.user.uid
-        ? 'Creatorul familiei are mereu acces la „Date & backup”. Poți acorda acces și altui membru din comutatorul de mai sus.'
-        : (canManageData()?'Ai acces la „Date & backup” (acordat de creator).':'Doar creatorul (sau cine primește acces) poate folosi „Date & backup”.');
+        ? 'Creatorul familiei are mereu acces la „Date & backup” și la ștergere. Membrii înrolați NU pot șterge nimic până nu le dai tu dreptul „Poate șterge” de mai sus.'
+        : (canManageData()?'Ai acces la „Date & backup” (acordat de creator).':'Doar creatorul (sau cine primește acces) poate folosi „Date & backup”.')
+          + (canDelete()?' Ai și drept de ștergere.':' Nu poți șterge date — cere-i creatorului dreptul „Poate șterge”.');
       rows.push(`<div class="set-row"><div class="set-meta"><div class="set-desc">${Cloud.members.length} ${Cloud.members.length===1?'membru':'membri'} în familie. Doar aceste persoane pot vedea și modifica datele. ${gate}</div></div></div>`);
     }
   } else {
