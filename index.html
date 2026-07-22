@@ -1404,7 +1404,7 @@ function payBill(id){
     toast(`${b.name} e deja marcată plătită luna aceasta`); return;
   }
   b.history.push({date: todayISO(), amount:+b.amount||0});
-  DB.expenses.push({id:uid(), amount:+b.amount||0, date:todayISO(), who:'comun', category:b.cat, subcategory:b.name, method:'transfer', note:'Factură recurentă', ts:Date.now(), fromBill:id, by:byNow()});
+  DB.expenses.push({id:uid(), amount:+b.amount||0, date:todayISO(), who:'comun', category:b.cat, subcategory:b.name, method:'transfer', note:'Factură recurentă', ts:Date.now(), fromBill:id, ...(byNow()?{by:byNow()}:{})});
   saveDB(); renderNav(); render(); toast(`${b.name} marcată ca plătită`);
 }
 function unpayBill(id){
@@ -1648,8 +1648,8 @@ function submitLoanPay(id){
   const date=$('#pDate').value||todayISO();
   l.repayments=l.repayments||[]; l.repayments.push({date, amount});
   if($('#pAsTx') && $('#pAsTx').classList.contains('on')){
-    if(l.dir==='lent') DB.incomes.push({id:uid(), amount, date, who:Cloud.myWho||'comun', category:'Alte venituri', note:'Recuperare împrumut · '+l.person, ts:Date.now(), by:byNow()});
-    else DB.expenses.push({id:uid(), amount, date, who:Cloud.myWho||'comun', category:'Altele', subcategory:'', method:'transfer', note:'Rambursare împrumut · '+l.person, ts:Date.now(), by:byNow()});
+    if(l.dir==='lent') DB.incomes.push({id:uid(), amount, date, who:Cloud.myWho||'comun', category:'Alte venituri', note:'Recuperare împrumut · '+l.person, ts:Date.now(), ...(byNow()?{by:byNow()}:{})});
+    else DB.expenses.push({id:uid(), amount, date, who:Cloud.myWho||'comun', category:'Altele', subcategory:'', method:'transfer', note:'Rambursare împrumut · '+l.person, ts:Date.now(), ...(byNow()?{by:byNow()}:{})});
   }
   afterWrite(l.dir==='lent'?'Încasare adăugată':'Rambursare adăugată');
 }
@@ -3104,8 +3104,13 @@ function canDelete(){
 }
 // autorul curent (uid) sau null când nu ești în cont — marcat pe fiecare înregistrare la creare
 function byNow(){ return (Cloud.user && Cloud.user.uid) || null; }
-// stampilează autorul: la creare = utilizatorul curent; la editare = păstrează autorul original
-function withBy(rec){ rec.by = state.form.id ? (state.form.by||null) : byNow(); return rec; }
+// stampilează autorul: la creare = utilizatorul curent; la editare = păstrează autorul original.
+// Nu scriem niciodată null (ca „by” să rămână imuabil server-side, iar înregistrările vechi să rămână fără autor).
+function withBy(rec){
+  if(state.form.id){ if(state.form.by) rec.by=state.form.by; }   // editare: păstrează autorul, dacă există
+  else { const b=byNow(); if(b) rec.by=b; }                      // creare: autorul curent (doar în cont)
+  return rec;
+}
 // poate șterge ACEASTĂ înregistrare? cu drept deplin → orice; altfel → doar ce a adăugat el (rec.by === al lui)
 function canDelRec(rec){
   if(canDelete()) return true;
