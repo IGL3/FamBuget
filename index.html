@@ -1835,6 +1835,7 @@ function openReportModal(){
    ============================================================ */
 /* cheia și modelul se țin DOAR local pe dispozitiv (nu în DB, deci nu se
    sincronizează în cloud și nu ajung în backup/export) */
+const AI_MODELS=['gpt-4o-mini','gpt-4o','gpt-4.1-mini','gpt-4.1','gpt-4.1-nano','gpt-3.5-turbo'];
 function getAIKey(){ return Store.get('casa_openai_key')||''; }
 function setAIKey(k){ if(k) Store.set('casa_openai_key',k); else Store.del('casa_openai_key'); }
 function getAIModel(){ return Store.get('casa_openai_model')||'gpt-4o-mini'; }
@@ -1861,8 +1862,13 @@ function viewAdvisor(){
   if(!state.advisorMsgs) state.advisorMsgs=loadChat();
   const msgs=state.advisorMsgs;
   const hasKey=!!getAIKey();
+  const cur=getAIModel();
+  const modelOpts=[...new Set([cur,...AI_MODELS])].map(m=>`<option value="${esc(m)}" ${m===cur?'selected':''}>${esc(m)}</option>`).join('');
   const head=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap">
-    <span style="font-size:12.5px;color:var(--ink-4)">Sfaturi pe datele voastre reale · model ${esc(getAIModel())}</span>
+    <div style="display:flex;align-items:center;gap:7px">
+      <span style="font-size:12.5px;color:var(--ink-4)">Model:</span>
+      <select class="select" id="advisorModel" style="padding:5px 26px 5px 10px;font-size:12.5px;box-shadow:none">${modelOpts}</select>
+    </div>
     <div style="display:flex;gap:6px">
       <button class="btn ghost sm" data-nav="ai">Analiză automată</button>
       ${msgs.length?`<button class="btn ghost sm" data-action="clearchat">Șterge conversația</button>`:''}
@@ -1872,7 +1878,7 @@ function viewAdvisor(){
     return head+`<div class="ai-card tip">
       <div class="ai-ic">🔑</div>
       <div style="flex:1"><h4>Conectează-ți contul OpenAI</h4>
-        <p>Ca să vorbești cu consilierul, adaugă o cheie API OpenAI (o creezi pe <b>platform.openai.com → API keys</b>; plătești doar la consum, câțiva cenți). Se salvează doar pe acest dispozitiv.</p>
+        <p>Ca să vorbești cu consilierul, adaugă o cheie API OpenAI (o creezi pe <b>platform.openai.com → API keys</b>). Ai nevoie și de <b>credit pe API</b> (platform.openai.com → Billing) — acesta e <b>separat de abonamentul ChatGPT</b> și se plătește la consum (câțiva cenți). Cheia se salvează doar pe acest dispozitiv.</p>
         <button class="btn sm primary" data-nav="settings" style="margin-top:12px">Adaugă cheia în Setări</button>
       </div>
     </div>`;
@@ -1896,6 +1902,7 @@ function viewAdvisor(){
 }
 function hookAdvisor(){
   const sc=$('#chatScroll'); if(sc) sc.scrollTop=sc.scrollHeight;
+  const ms=$('#advisorModel'); if(ms) ms.onchange=()=>{ setAIModel(ms.value); toast('Model: '+ms.value); };
   const inp=$('#chatInput'), send=$('#chatSend');
   if(send) send.onclick=()=>sendAdvisor();
   if(inp){
@@ -1936,10 +1943,17 @@ async function callOpenAI(key, model, msgs){
     });
   }catch(e){ throw new Error('Fără conexiune la OpenAI (verifică internetul).'); }
   if(!res.ok){
-    let msg='Eroare '+res.status;
-    try{ const e=await res.json(); if(e.error&&e.error.message) msg=e.error.message; }catch(_){}
+    let apiMsg='', code='';
+    try{ const e=await res.json(); apiMsg=(e.error&&e.error.message)||''; code=(e.error&&(e.error.code||e.error.type))||''; }catch(_){}
+    let msg=apiMsg||('Eroare '+res.status);
     if(res.status===401) msg='Cheie OpenAI invalidă — verific-o în Setări.';
-    else if(res.status===429) msg='Limită atinsă sau fără credit pe contul OpenAI.';
+    else if(res.status===429){
+      if(/quota|insufficient|billing/i.test(code+' '+apiMsg))
+        msg='Contul OpenAI nu are credit pe API. Adaugă o metodă de plată și credit pe platform.openai.com → Billing. Atenție: abonamentul ChatGPT (Plus/Pro) NU include API-ul — se plătește separat, la consum.';
+      else msg='Prea multe cereri prea repede — așteaptă câteva secunde și reîncearcă.';
+    }
+    else if(res.status===404 || /model/i.test(code+' '+apiMsg))
+      msg='Modelul „'+model+'" nu e disponibil pe contul tău. Alege alt model din selectorul de sus (sau în Setări).';
     throw new Error(msg);
   }
   const data=await res.json();
@@ -2129,10 +2143,9 @@ function viewSettings(){
     </div>
     <div class="set-row">
       <div class="set-ic">${ic('<rect x="7" y="7" width="10" height="10" rx="2.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>')}</div>
-      <div class="set-meta"><div class="set-title">Model</div><div class="set-desc">gpt-4o-mini e ieftin și bun pentru sfaturi</div></div>
-      <select class="select field-input" id="aiModelSelect" style="max-width:180px">
-        ${['gpt-4o-mini','gpt-4o','gpt-4.1-mini','gpt-4.1'].map(m=>`<option ${getAIModel()===m?'selected':''}>${m}</option>`).join('')}
-      </select>
+      <div class="set-meta"><div class="set-title">Model</div><div class="set-desc">gpt-4o-mini e ieftin și bun. Poți alege din listă sau scrie exact modelul la care are acces contul tău.</div></div>
+      <input class="field-input" id="aiModelSelect" list="aiModelsDL" value="${esc(getAIModel())}" placeholder="gpt-4o-mini" style="max-width:180px;font-family:var(--font-mono)">
+      <datalist id="aiModelsDL">${AI_MODELS.map(m=>`<option value="${m}">`).join('')}</datalist>
     </div>
     <div class="set-row">
       <div class="set-ic">${ic('<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>')}</div>
