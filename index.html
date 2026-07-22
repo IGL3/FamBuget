@@ -779,7 +779,7 @@ const Store = (() => {
 })();
 const DBKEY = 'casa_finance_v1';
 const VIEWKEY = 'casa_view_v1'; // ultimul tab vizitat, ca refresh-ul să te lase unde erai
-const APP_VERSION = '2026.07.5'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
+const APP_VERSION = '2026.07.6'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
 
 /* ---------- CONFIG: categorii ---------- */
 const INCOME_CATS = [
@@ -2081,7 +2081,7 @@ function viewSettings(){
     </div>`:''}
     ${faceIdSupported()?`<div class="set-row">
       <div class="set-ic">${ic('<path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 10v1M15 10v1M12 10v3l-1 .8M9.3 15c1.3 1 4.1 1 5.4 0"/>')}</div>
-      <div class="set-meta"><div class="set-title">Deblocare cu Face ID</div><div class="set-desc">${faceIdEnabled()?'Activ pe acest dispozitiv · deschizi aplicația cu fața':'Deschide aplicația cu Face ID / amprentă (acest dispozitiv)'}</div></div>
+      <div class="set-meta"><div class="set-title">Deblocare cu Face ID</div><div class="set-desc">${faceIdEnabled()?'Activ · te întreabă doar după ~30 min de pauză, nu la fiecare deschidere':'Deschide aplicația cu Face ID / amprentă (acest dispozitiv)'}</div></div>
       <button class="btn sm ${faceIdEnabled()?'danger':'primary'}" data-action="${faceIdEnabled()?'faceoff':'faceon'}">${faceIdEnabled()?'Dezactivează':'Activează'}</button>
     </div>${faceIdEnabled()&&!s.pin?`<div class="set-row"><div class="set-meta"><div class="set-desc">💡 Recomandat: pune și un PIN ca rezervă, în caz că Face ID nu merge.</div></div></div>`:''}`:''}
   </div>`)}
@@ -2484,7 +2484,7 @@ function pressPin(k){
 }
 function handlePin(){
   if(pinMode==='unlock'){
-    if(pinBuf===DB.settings.pin){ hideLock(); }
+    if(pinBuf===DB.settings.pin){ markSeen(); hideLock(); }
     else pinError();
   } else if(pinMode==='set'){
     if(pinTemp===null){ pinTemp=pinBuf; pinBuf=''; renderDots(); $('#lockMsg').textContent='Confirmă codul PIN'; }
@@ -2512,6 +2512,11 @@ function hideLock(){ $('#lockScreen').classList.add('hidden'); pinBuf=''; pinTem
 
 /* ---------- Deblocare cu Face ID / amprentă (WebAuthn, per dispozitiv) ---------- */
 const FACE_KEY='casa_faceid';
+const SEEN_KEY='casa_lastseen';
+const LOCK_GRACE_MS=30*60*1000;   // nu re-cere Face ID/PIN dacă ai folosit aplicația în ultimele 30 min
+function isUnlocked(){ const l=$('#lockScreen'); return !l || l.classList.contains('hidden'); }
+function markSeen(){ try{ Store.set(SEEN_KEY, String(Date.now())); }catch(e){} }
+function recentlySeen(){ const t=+(Store.get(SEEN_KEY)||0); return t>0 && (Date.now()-t) < LOCK_GRACE_MS; }
 function faceIdSupported(){ return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create && window.isSecureContext); }
 function faceIdEnabled(){ return !!Store.get(FACE_KEY); }
 function randBytes(n){ const a=new Uint8Array(n); (crypto||window.crypto).getRandomValues(a); return a; }
@@ -2533,6 +2538,7 @@ async function enableFaceId(){
     }});
     if(!cred) throw 0;
     Store.set(FACE_KEY, JSON.stringify({ id: ab2b64(cred.rawId) }));
+    markSeen();   // tocmai l-ai configurat → nu te bloca imediat la următoarea deschidere
     toast('Face ID activat ✓'); render();
   }catch(e){ toast('Face ID neactivat (anulat sau indisponibil)','err'); }
 }
@@ -2551,7 +2557,7 @@ async function faceIdUnlock(){
 async function tryFaceUnlock(){
   const fb=$('#faceBtn'); if(fb){ fb.disabled=true; fb.textContent='Se verifică…'; }
   const ok=await faceIdUnlock();
-  if(ok){ hideLock(); return; }
+  if(ok){ markSeen(); hideLock(); return; }
   if(fb){ fb.disabled=false; fb.textContent='Deblochează cu Face ID'; }
 }
 
@@ -3568,7 +3574,8 @@ function boot(){
     renderNav();
     const savedView = Store.get(VIEWKEY);
     go(TITLES[savedView] ? savedView : 'dashboard');
-    if(DB.settings.pin || faceIdEnabled()){ showLock('unlock'); }
+    // blochează la pornire doar dacă NU ai folosit aplicația recent (grace de 30 min)
+    if((DB.settings.pin || faceIdEnabled()) && !recentlySeen()){ showLock('unlock'); } else { markSeen(); }
   }catch(e){ console.error('boot error', e); }
   finally{
     const app=$('#app'); if(app) app.classList.add('ready');  // dezvăluie mereu UI-ul
@@ -3576,7 +3583,13 @@ function boot(){
     // verifică versiunea nouă la pornire și de fiecare dată când revii în aplicație (util pe telefon, unde nu ai refresh)
     try{
       setTimeout(checkForUpdate, 4000);
-      document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) checkForUpdate(); });
+      // marchează „folosit recent” DOAR când aplicația e deblocată (altfel s-ar putea ocoli blocarea)
+      document.addEventListener('visibilitychange', ()=>{
+        if(document.hidden){ if(isUnlocked()) markSeen(); }
+        else checkForUpdate();
+      });
+      window.addEventListener('pagehide', ()=>{ if(isUnlocked()) markSeen(); });
+      setInterval(()=>{ if(!document.hidden && isUnlocked()) markSeen(); }, 60000);
     }catch(e){}
     // scripturile Firebase sunt defer → pornim cloud-ul când sunt gata; fără net, aplicația merge local
     try{ if(typeof firebase!=='undefined') initCloud(); else window.addEventListener('load', initCloud); }catch(e){ console.warn('cloud skipped', e); }
