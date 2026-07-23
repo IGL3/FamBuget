@@ -354,6 +354,38 @@ html.dark .hero{background:linear-gradient(160deg,#0c3628,#06201a);background:ra
 .bill-warn b{color:var(--ink);font-weight:700;white-space:nowrap}
 .bill-warn.danger{background:var(--danger-soft);border-color:var(--danger)}
 .bill-warn.danger svg{color:var(--danger)}
+/* ----- Calendar ----- */
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.cal-title{font-size:17px;font-weight:800;text-transform:capitalize}
+.cal-legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;font-size:11.5px;color:var(--ink-3)}
+.cal-legend span{display:inline-flex;align-items:center;gap:5px}
+.cal-dot{width:7px;height:7px;border-radius:50%;display:inline-block;background:var(--ink-4);flex:0 0 auto}
+.cd-bill{background:var(--amber)} .cd-loan{background:var(--info)} .cd-goal{background:var(--brand)} .cd-event{background:#b07bff}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-dow{margin-bottom:6px}
+.cal-dowlbl{text-align:center;font-size:11px;font-weight:700;color:var(--ink-4);padding:2px 0}
+.cal-cell{aspect-ratio:1;min-height:44px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;transition:.12s;color:inherit}
+.cal-cell.empty{background:transparent;border:none;min-height:0}
+.cal-cell .cal-num{font-size:14px;font-weight:600;color:var(--ink-2)}
+.cal-cell.today{border-color:var(--brand)}
+.cal-cell.today .cal-num{color:var(--brand)}
+.cal-cell.sel{background:var(--brand-soft);border-color:var(--brand)}
+.cal-cell.sel .cal-num{color:var(--brand-ink)}
+.cal-dots{display:flex;gap:3px;position:absolute;bottom:6px}
+.cal-day{margin-top:20px}
+.cal-day-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px}
+.cal-day-head h4{font-size:15px;font-weight:700;text-transform:capitalize}
+.cal-list{display:flex;flex-direction:column;gap:8px}
+.cal-item{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:13px;background:var(--surface-2);border:1px solid var(--line)}
+.cal-item.clickable,.cal-item-b.clickable{cursor:pointer}
+.cal-item.done .cal-item-t{text-decoration:line-through;color:var(--ink-4)}
+.cal-ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;background:var(--surface-3);flex:0 0 30px}
+.cal-item-b{flex:1;min-width:0}
+.cal-item-t{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-item-s{font-size:12px;color:var(--ink-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-tag{font-size:10px;color:var(--ink-4);text-transform:uppercase;letter-spacing:.5px;flex:0 0 auto}
+.cal-check{width:26px;height:26px;border-radius:50%;border:2px solid var(--line-strong);color:var(--brand);font-size:13px;font-weight:800;flex:0 0 26px;display:grid;place-items:center;transition:.12s}
+.cal-item.done .cal-check{background:var(--brand);border-color:var(--brand);color:#fff}
 .stat{padding:16px 17px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-sm);position:relative;overflow:hidden}
 .stat .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;margin-bottom:12px}
 .stat .ic svg{width:18px;height:18px}
@@ -787,7 +819,7 @@ const Store = (() => {
 })();
 const DBKEY = 'casa_finance_v1';
 const VIEWKEY = 'casa_view_v1'; // ultimul tab vizitat, ca refresh-ul să te lase unde erai
-const APP_VERSION = '2026.07.8'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
+const APP_VERSION = '2026.07.9'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
 
 /* ---------- CONFIG: categorii ---------- */
 const INCOME_CATS = [
@@ -830,6 +862,8 @@ const state = {
   month: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`,
   filters: { q:'', cat:'all', who:'all' },
   dashWho: 'all',
+  calMonth: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`,
+  calSel: null,   // ziua selectată în calendar (ISO); null = azi
   form: {}
 };
 
@@ -877,6 +911,7 @@ const NAV = [
   {id:'budgets',   label:'Bugete',   svg:'budget'},
   {id:'savings',   label:'Economii', svg:'savings'},
   {id:'loans',     label:'Împrumuturi', svg:'loans'},
+  {id:'calendar',  label:'Calendar', svg:'calendar'},
   {id:'reports',   label:'Rapoarte', svg:'reports'}
 ];
 const NAV_SVG = {
@@ -888,6 +923,7 @@ const NAV_SVG = {
   savings:'<path d="M19 5c-1.5 0-3 1-3 3 0 .5.2 1 .5 1.5C15 11 12 12 12 12s-3-1-4.5-2.5C7.8 9 8 8.5 8 8c0-2-1.5-3-3-3"/><path d="M4 13c0 4 4 7 8 7s8-3 8-7c0-1-.3-2-.8-2.8"/><circle cx="15.5" cy="9.5" r=".5"/>',
   ai:'<path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><rect x="7" y="7" width="10" height="10" rx="2.5"/><circle cx="10" cy="11" r="1"/><circle cx="14" cy="11" r="1"/><path d="M10 14h4"/>',
   reports:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  calendar:'<rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 2v4M16 2v4"/><circle cx="8.5" cy="14" r="1.1"/><circle cx="12" cy="14" r="1.1"/><circle cx="15.5" cy="14" r="1.1"/>',
   loans:'<path d="M3 8.5h13a2 2 0 0 1 2 2v0M21 15.5H8a2 2 0 0 1-2-2v0"/><path d="M6 5.5 3 8.5l3 3M18 12.5l3 3-3 3"/>',
   settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
 };
@@ -902,7 +938,7 @@ function renderNav(){
     <button class="nav-item ${state.view===n.id?'active':''}" data-nav="${n.id}">
       ${svgIcon(n.id)}<span>${n.label}</span>${badge(n.id)}
     </button>`).join('');
-  const bn = [['dashboard','Dashboard'],['income','Venituri'],['expenses','Cheltuieli'],['loans','Datorii'],['bills','Facturi'],['budgets','Bugete'],['reports','Rapoarte'],['settings','Setări']];
+  const bn = [['dashboard','Dashboard'],['income','Venituri'],['expenses','Cheltuieli'],['loans','Datorii'],['bills','Facturi'],['budgets','Bugete'],['calendar','Calendar'],['reports','Rapoarte'],['settings','Setări']];
   $('#botnav').innerHTML = bn.map(([id,l])=>`
     <button data-nav="${id}" class="${state.view===id?'active':''}">
       ${svgIcon(id)}<span>${l}</span>${badge(id)}
@@ -918,6 +954,7 @@ const TITLES = {
   budgets:['Bugete','Cât ți-ai propus vs cât ai cheltuit'],
   savings:['Economii & obiective','Fondul de urgență și țintele voastre'],
   loans:['Împrumuturi','Datorii și bani de recuperat, cu scadențe'],
+  calendar:['Calendar','Scadențe și deadline-uri într-un singur loc'],
   reports:['Rapoarte','Sinteze lunare, trimestriale, anuale'],
   settings:['Setări','Cont, securitate, date']
 };
@@ -940,7 +977,7 @@ function render(){
   const v = $('#view');
   const map = {
     dashboard:viewDashboard, income:viewIncome, expenses:viewExpenses, bills:viewBills,
-    budgets:viewBudgets, savings:viewSavings, loans:viewLoans, reports:viewReports, settings:viewSettings
+    budgets:viewBudgets, savings:viewSavings, loans:viewLoans, calendar:viewCalendar, reports:viewReports, settings:viewSettings
   };
   destroyCharts();
   v.innerHTML = (map[state.view]||viewDashboard)();
@@ -2287,6 +2324,93 @@ function formContrib(g){
     <button class="btn primary block" id="submitContrib" data-goal="${g.id}">Adaugă contribuția</button>
   </div>`;
 }
+function formEvent(){
+  const f=state.form;
+  return `<div class="modal-head"><h3>${f.id?'Editează deadline':'Deadline nou'}</h3>${closeIcon()}</div>
+  <div class="modal-body">
+    <div class="field"><label>Titlu</label><input class="field-input" id="evTitle" placeholder="ex. Plată asigurare, ITP mașină, aniversare…" value="${esc(f.title||'')}"></div>
+    <div class="field"><label>Data</label><input class="field-input" id="evDate" type="date" value="${f.date||state.calSel||todayISO()}"></div>
+    <div class="field"><label>Notă <span style="color:var(--ink-4);font-weight:400">(opțional)</span></label><textarea class="field-input" id="evNote" rows="2" placeholder="detalii">${esc(f.note||'')}</textarea></div>
+    <button class="btn primary block" id="submitForm">${f.id?'Salvează':'Adaugă în calendar'}</button>
+    ${(f.id&&canDelRec(f))?`<button class="btn danger block" data-delevent="${f.id}" style="margin-top:8px">Șterge</button>`:''}
+  </div>`;
+}
+
+/* ---------- CALENDAR ---------- */
+function calendarItems(cm){
+  // map: zi(1..dim) -> [ {type,id,title,detail,nav,custom,done} ]
+  const map={}; const dim=daysInMonth(cm);
+  const push=(day,it)=>{ day=clamp(day,1,dim); (map[day]=map[day]||[]).push(it); };
+  DB.bills.forEach(b=>push(+b.dueDay||1, {type:'bill', id:b.id, title:esc(b.name||'Factură'), detail:fmtC(+b.amount||0)+' lei', nav:'bills'}));
+  (DB.loans||[]).forEach(l=>{ if(l.deadline && l.deadline.slice(0,7)===cm)
+    push(+l.deadline.slice(8,10), {type:'loan', id:l.id, title:(l.dir==='lent'?'De recuperat: ':'De dat înapoi: ')+esc(l.person||''), detail:fmtC(+l.amount||0)+' lei', nav:'loans'}); });
+  DB.goals.forEach(g=>{ if(g.deadline && g.deadline.slice(0,7)===cm)
+    push(+g.deadline.slice(8,10), {type:'goal', id:g.id, title:'Obiectiv: '+esc(g.name||''), detail:fmtC(+g.saved||0)+' / '+fmtC(+g.target||0)+' lei', nav:'savings'}); });
+  (DB.events||[]).forEach(e=>{ if(e.date && e.date.slice(0,7)===cm)
+    push(+e.date.slice(8,10), {type:'event', id:e.id, title:esc(e.title||'Deadline'), detail:e.note?esc(e.note):'', custom:true, done:!!e.done}); });
+  return map;
+}
+function calRow(it){
+  const ic={bill:'💳',loan:'🤝',goal:'🎯',event:'📌'}[it.type]||'📌';
+  if(it.custom){
+    const canDel=canDelRec((DB.events||[]).find(e=>e.id===it.id));
+    return `<div class="cal-item ${it.done?'done':''}">
+      <button class="cal-check" data-evtdone="${it.id}" aria-label="Marchează rezolvat">${it.done?'✓':''}</button>
+      <div class="cal-item-b clickable" data-eventopen="${it.id}"><div class="cal-item-t">${it.title}</div>${it.detail?`<div class="cal-item-s">${it.detail}</div>`:''}</div>
+      ${canDel?`<button class="mini-btn" data-delevent="${it.id}" aria-label="Șterge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>`:''}
+    </div>`;
+  }
+  return `<div class="cal-item clickable" data-nav="${it.nav}">
+    <span class="cal-ico cd-${it.type}">${ic}</span>
+    <div class="cal-item-b"><div class="cal-item-t">${it.title}</div>${it.detail?`<div class="cal-item-s">${it.detail}</div>`:''}</div>
+    <span class="cal-tag">${({bill:'factură',loan:'împrumut',goal:'obiectiv'})[it.type]||''}</span>
+  </div>`;
+}
+function viewCalendar(){
+  const cm=state.calMonth;
+  const today=todayISO();
+  const sel=(state.calSel && state.calSel.slice(0,7)===cm) ? state.calSel : (isThisMonth(cm)?today:`${cm}-01`);
+  const items=calendarItems(cm);
+  const dim=daysInMonth(cm);
+  const startDow=(parseMonth(cm).getDay()+6)%7;   // 0 = Luni
+  const dows=['L','Ma','Mi','J','V','S','D'];
+  let cells='';
+  for(let i=0;i<startDow;i++) cells+='<div class="cal-cell empty"></div>';
+  for(let d=1; d<=dim; d++){
+    const iso=`${cm}-${String(d).padStart(2,'0')}`;
+    const types=[...new Set((items[d]||[]).map(x=>x.type))];
+    const dots=types.slice(0,4).map(t=>`<span class="cal-dot cd-${t}"></span>`).join('');
+    cells+=`<button class="cal-cell${iso===today?' today':''}${iso===sel?' sel':''}" data-calday="${iso}"><span class="cal-num">${d}</span>${dots?`<span class="cal-dots">${dots}</span>`:''}</button>`;
+  }
+  const selDay=parseInt(sel.slice(8,10),10);
+  const selItems=items[selDay]||[];
+  const sd=new Date(+cm.slice(0,4), +cm.slice(5,7)-1, selDay);
+  const selLabel=sd.toLocaleDateString('ro-RO',{weekday:'long',day:'numeric',month:'long'});
+  const rows = selItems.length ? selItems.map(calRow).join('')
+    : `<div style="text-align:center;padding:22px 10px;color:var(--ink-4);font-size:13px">Nimic în această zi. Apasă „+ Deadline” ca să adaugi ceva.</div>`;
+  return `
+  <div class="cal-head">
+    <button class="icon-btn" data-calnav="-1" aria-label="Luna precedentă"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div class="cal-title">${monthName(cm)}</div>
+    <button class="icon-btn" data-calnav="1" aria-label="Luna următoare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+  <div class="cal-legend">
+    <span><i class="cal-dot cd-bill"></i>Facturi</span>
+    <span><i class="cal-dot cd-loan"></i>Împrumuturi</span>
+    <span><i class="cal-dot cd-goal"></i>Obiective</span>
+    <span><i class="cal-dot cd-event"></i>Ale tale</span>
+  </div>
+  <div class="cal-grid cal-dow">${dows.map(x=>`<div class="cal-dowlbl">${x}</div>`).join('')}</div>
+  <div class="cal-grid">${cells}</div>
+  <div class="cal-day">
+    <div class="cal-day-head"><h4>${esc(selLabel)}</h4><button class="btn sm primary" data-addevent="${sel}">+ Deadline</button></div>
+    <div class="cal-list">${rows}</div>
+  </div>`;
+}
+function toggleEventDone(id){
+  const e=(DB.events||[]).find(x=>x.id===id); if(!e) return;
+  e.done=!e.done; saveDB(); render(); renderNav();
+}
 
 /* ---------- deschidere formulare ---------- */
 function openForm(kind,id){
@@ -2297,8 +2421,9 @@ function openForm(kind,id){
   else if(kind==='budget') rec = id? {...DB.budgets.find(x=>x.id===id)} : {category:'Mâncare',period:'lunar'};
   else if(kind==='goal') rec = id? {...DB.goals.find(x=>x.id===id)} : {i:'🎯'};
   else if(kind==='loan') rec = id? {...DB.loans.find(x=>x.id===id)} : {dir:'borrowed', date:todayISO()};
+  else if(kind==='event') rec = id? {...DB.events.find(x=>x.id===id)} : {date: state.calSel||todayISO()};
   setForm(rec);
-  const tpl={income:formIncome,expense:formExpense,bill:formBill,budget:formBudget,goal:formGoal,loan:formLoan}[kind];
+  const tpl={income:formIncome,expense:formExpense,bill:formBill,budget:formBudget,goal:formGoal,loan:formLoan,event:formEvent}[kind];
   openModal(tpl());
   wireForm(kind);
 }
@@ -2411,6 +2536,14 @@ function submitForm(kind){
     if(state.form.id){ const i=DB.loans.findIndex(x=>x.id===state.form.id); DB.loans[i]=rec; } else DB.loans.push(rec);
     afterWrite('Împrumut salvat');
   }
+  else if(kind==='event'){
+    const title=$('#evTitle').value.trim();
+    if(!title) return toast('Adaugă un titlu','err');
+    const rec={id:state.form.id||uid(), title, date:$('#evDate').value||todayISO(), note:$('#evNote').value.trim(), done:!!state.form.done};
+    withBy(rec);
+    if(state.form.id){ const i=DB.events.findIndex(x=>x.id===state.form.id); DB.events[i]=rec; } else DB.events.push(rec);
+    afterWrite('Deadline salvat');
+  }
 }
 function submitContrib(id){
   const g=DB.goals.find(x=>x.id===id); if(!g) return;
@@ -2430,7 +2563,7 @@ function delTx(id,kind){
   arr.splice(i,1); afterWrite('Șters');
 }
 function delEntity(type,id){
-  const map={bill:'bills',budget:'budgets',goal:'goals',loan:'loans'};
+  const map={bill:'bills',budget:'budgets',goal:'goals',loan:'loans',event:'events'};
   const key=map[type]; if(!key) return;
   const rec=DB[key].find(x=>x.id===id);
   if(!canDelRec(rec)){ toast('Poți șterge doar ce ai adăugat tu — cere-i creatorului dreptul de ștergere','err'); return; }
@@ -2957,12 +3090,12 @@ function clearDemo(){
    DB INIT + SEED
    ============================================================ */
 function normalizeDB(obj){
-  const d=Object.assign({users:{sot:'Soț',sotie:'Soție'},settings:{},incomes:[],expenses:[],bills:[],budgets:[],goals:[],loans:[]},obj);
+  const d=Object.assign({users:{sot:'Soț',sotie:'Soție'},settings:{},incomes:[],expenses:[],bills:[],budgets:[],goals:[],loans:[],events:[]},obj);
   d.settings=Object.assign({pin:null,dark:false,ocr:true,notif:true,adults:2,children:1,seeded:true},d.settings||{});
   // migrare: până acum «dark» era doar manual (și inaccesibil pe mobil); dark activ = alegere explicită,
   // altfel tema urmează automat preferința sistemului (vezi effDark)
   if(d.settings.themeChosen===undefined) d.settings.themeChosen = d.settings.dark===true;
-  ['incomes','expenses','bills','budgets','goals','loans'].forEach(k=>{ if(!Array.isArray(d[k])) d[k]=[]; });
+  ['incomes','expenses','bills','budgets','goals','loans','events'].forEach(k=>{ if(!Array.isArray(d[k])) d[k]=[]; });
   return d;
 }
 function defaultDB(){
@@ -3049,7 +3182,7 @@ function setActiveAmong(btn,attr){
 function removePin(){ DB.settings.pin=null; saveDB(); render(); toast('PIN eliminat'); }
 
 document.addEventListener('click', e=>{
-  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess],[data-deleteaccess],[data-accbtn],[data-animstyle]');
+  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess],[data-deleteaccess],[data-accbtn],[data-animstyle],[data-calnav],[data-calday],[data-addevent],[data-eventopen],[data-delevent],[data-evtdone]');
   if(!t) return;
   const d=t.dataset;
 
@@ -3086,6 +3219,12 @@ document.addEventListener('click', e=>{
   if(d.billopen){ openForm('bill', d.billopen); return; }
   if(d.contrib){ openContrib(d.contrib); return; }
   if(d.report){ state.reportRange=d.report; render(); return; }
+  if(d.calnav){ state.calMonth=shiftMonth(state.calMonth, +d.calnav); state.calSel=null; render(); return; }
+  if(d.calday){ state.calSel=d.calday; render(); return; }
+  if(d.addevent){ state.calSel=d.addevent; openForm('event'); return; }
+  if(d.eventopen){ openForm('event', d.eventopen); return; }
+  if(d.delevent){ delEntity('event', d.delevent); return; }
+  if(d.evtdone){ toggleEventDone(d.evtdone); return; }
   if(d.dashwho){ state.dashWho=d.dashwho; render(); return; }
   if(d.close!==undefined){ closeModal(); return; }
   if(d.key){ pressPin(d.key); return; }
@@ -3169,7 +3308,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "911061982108",
   appId: "1:911061982108:web:41149896e8fb8e76e88659"
 };
-const COLLS = ['incomes','expenses','bills','budgets','goals','loans'];
+const COLLS = ['incomes','expenses','bills','budgets','goals','loans','events'];
 const ADMIN_EMAIL = 'ionut.051194@gmail.com'; // panoul de administrare + acces implicit la Date & backup
 const Cloud = { app:null, auth:null, db:null, user:null, fid:null, active:false,
                 unsubs:[], last:null, metaLast:null, pushT:null, inviteCode:'', myWho:null, role:'sot',
