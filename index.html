@@ -386,6 +386,19 @@ html.dark .hero{background:linear-gradient(160deg,#0c3628,#06201a);background:ra
 .cal-tag{font-size:10px;color:var(--ink-4);text-transform:uppercase;letter-spacing:.5px;flex:0 0 auto}
 .cal-check{width:26px;height:26px;border-radius:50%;border:2px solid var(--line-strong);color:var(--brand);font-size:13px;font-weight:800;flex:0 0 26px;display:grid;place-items:center;transition:.12s}
 .cal-item.done .cal-check{background:var(--brand);border-color:var(--brand);color:#fff}
+/* ----- Panou „Mai multe” (bara de jos pe mobil) ----- */
+.more-sheet{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;opacity:0;transition:opacity .2s ease;pointer-events:none}
+.more-sheet.show{opacity:1;pointer-events:auto}
+.more-scrim{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.more-panel{position:relative;width:100%;background:var(--surface);border-radius:22px 22px 0 0;padding:8px 16px calc(env(safe-area-inset-bottom) + 20px);box-shadow:var(--shadow-lg);transform:translateY(14px);transition:transform .22s ease}
+.more-sheet.show .more-panel{transform:translateY(0)}
+.more-grip{width:40px;height:4px;border-radius:2px;background:var(--line-strong);margin:8px auto 14px}
+.more-title{font-size:15px;font-weight:800;margin:0 2px 14px}
+.more-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.more-item{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 6px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);font-size:12.5px;font-weight:600;position:relative;transition:.12s}
+.more-item svg{width:25px;height:25px}
+.more-item.active{color:var(--brand);border-color:var(--brand);background:var(--brand-soft)}
+.more-item .nav-badge{top:9px;right:22%}
 .stat{padding:16px 17px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-sm);position:relative;overflow:hidden}
 .stat .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;margin-bottom:12px}
 .stat .ic svg{width:18px;height:18px}
@@ -659,7 +672,7 @@ html.dark.anim-bg.abg-fluid #fluidbg{opacity:1}
     border-top:1px solid var(--line);padding:8px 6px calc(env(safe-area-inset-bottom) + 8px);
     justify-content:space-around
   }
-  .botnav button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 1px;border-radius:12px;color:var(--ink-4);font-size:9.5px;font-weight:600;position:relative;flex:1;min-width:0;white-space:nowrap}
+  .botnav button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;border-radius:12px;color:var(--ink-4);font-size:10.5px;font-weight:600;position:relative;flex:1;min-width:0;white-space:nowrap}
   .botnav button svg{width:22px;height:22px}
   .botnav button.active{color:var(--brand)}
   .botnav .nav-badge{position:absolute;top:0;right:22%}
@@ -819,7 +832,7 @@ const Store = (() => {
 })();
 const DBKEY = 'casa_finance_v1';
 const VIEWKEY = 'casa_view_v1'; // ultimul tab vizitat, ca refresh-ul să te lase unde erai
-const APP_VERSION = '2026.07.9'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
+const APP_VERSION = '2026.07.10'; // stampilă vizibilă în Setări, ca să confirmi că ai versiunea nouă
 
 /* ---------- CONFIG: categorii ---------- */
 const INCOME_CATS = [
@@ -929,21 +942,41 @@ const NAV_SVG = {
 };
 const svgIcon = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NAV_SVG[id]||''}</svg>`;
 
+// bara de jos pe mobil: 4 taburi fixe + „Mai multe” (restul într-un panou de jos)
+const BN_MAIN = [['dashboard','Dashboard'],['expenses','Cheltuieli'],['calendar','Calendar'],['bills','Facturi']];
+const BN_MORE = [['income','Venituri'],['loans','Datorii'],['budgets','Bugete'],['reports','Rapoarte'],['settings','Setări']];
+const MORE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
+function navBadge(id){
+  const b=countBillsUnpaid(), l=countLoansDue();
+  return (id==='bills'&&b) ? `<span class="nav-badge">${b}</span>`
+       : (id==='loans'&&l) ? `<span class="nav-badge">${l}</span>` : '';
+}
 function renderNav(){
-  const billsUnpaid = countBillsUnpaid();
-  const loansDue = countLoansDue();
-  const badge = id => (id==='bills'&&billsUnpaid) ? `<span class="nav-badge">${billsUnpaid}</span>`
-                    : (id==='loans'&&loansDue) ? `<span class="nav-badge">${loansDue}</span>` : '';
   $('#navMain').innerHTML = NAV.map(n=>`
     <button class="nav-item ${state.view===n.id?'active':''}" data-nav="${n.id}">
-      ${svgIcon(n.id)}<span>${n.label}</span>${badge(n.id)}
+      ${svgIcon(n.id)}<span>${n.label}</span>${navBadge(n.id)}
     </button>`).join('');
-  const bn = [['dashboard','Dashboard'],['income','Venituri'],['expenses','Cheltuieli'],['loans','Datorii'],['bills','Facturi'],['budgets','Bugete'],['calendar','Calendar'],['reports','Rapoarte'],['settings','Setări']];
-  $('#botnav').innerHTML = bn.map(([id,l])=>`
-    <button data-nav="${id}" class="${state.view===id?'active':''}">
-      ${svgIcon(id)}<span>${l}</span>${badge(id)}
-    </button>`).join('');
+  const moreActive = BN_MORE.some(([id])=>id===state.view);
+  const moreBadge = countLoansDue() ? `<span class="nav-badge">${countLoansDue()}</span>` : '';   // Datorii e ascunsă în „Mai multe”
+  $('#botnav').innerHTML =
+    BN_MAIN.map(([id,l])=>`<button data-nav="${id}" class="${state.view===id?'active':''}">${svgIcon(id)}<span>${l}</span>${navBadge(id)}</button>`).join('')
+    + `<button data-more class="${moreActive?'active':''}">${MORE_ICON}<span>Mai multe</span>${moreBadge}</button>`;
 }
+function openMore(){
+  if($('#moreSheet')) return;
+  const grid = BN_MORE.map(([id,l])=>`<button class="more-item ${state.view===id?'active':''}" data-nav="${id}">${svgIcon(id)}<span>${l}</span>${navBadge(id)}</button>`).join('');
+  const sheet=document.createElement('div');
+  sheet.id='moreSheet'; sheet.className='more-sheet';
+  sheet.innerHTML=`<div class="more-scrim" data-closemore></div>
+    <div class="more-panel">
+      <div class="more-grip"></div>
+      <div class="more-title">Mai multe</div>
+      <div class="more-grid">${grid}</div>
+    </div>`;
+  document.body.appendChild(sheet);
+  requestAnimationFrame(()=>sheet.classList.add('show'));
+}
+function closeMore(){ const s=$('#moreSheet'); if(s){ s.classList.remove('show'); setTimeout(()=>{ if(s.parentNode) s.remove(); },200); } }
 
 /* ---------- ROUTER ---------- */
 const TITLES = {
@@ -959,6 +992,7 @@ const TITLES = {
   settings:['Setări','Cont, securitate, date']
 };
 function go(view){
+  closeMore();                       // închide panoul „Mai multe” la orice navigare
   state.view = view;
   Store.set(VIEWKEY, view);
   const [t,s] = TITLES[view] || ['',''];
@@ -3182,7 +3216,7 @@ function setActiveAmong(btn,attr){
 function removePin(){ DB.settings.pin=null; saveDB(); render(); toast('PIN eliminat'); }
 
 document.addEventListener('click', e=>{
-  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess],[data-deleteaccess],[data-accbtn],[data-animstyle],[data-calnav],[data-calday],[data-addevent],[data-eventopen],[data-delevent],[data-evtdone]');
+  const t=e.target.closest('[data-nav],[data-add],[data-edit],[data-del],[data-editbill],[data-delbill],[data-editbudget],[data-delbudget],[data-editgoal],[data-delgoal],[data-paybill],[data-unpaybill],[data-billopen],[data-contrib],[data-action],[data-report],[data-dashwho],[data-close],[data-whopick],[data-method],[data-catpick],[data-subpick],[data-period],[data-emoji],[data-billtpl],[data-localtoggle],[data-toggle],[data-key],[data-kindswitch],[data-themepick],[data-loanpay],[data-editloan],[data-delloan],[data-loandir],[data-loanfilter],[data-dataaccess],[data-deleteaccess],[data-accbtn],[data-animstyle],[data-calnav],[data-calday],[data-addevent],[data-eventopen],[data-delevent],[data-evtdone],[data-more],[data-closemore]');
   if(!t) return;
   const d=t.dataset;
 
@@ -3219,6 +3253,8 @@ document.addEventListener('click', e=>{
   if(d.billopen){ openForm('bill', d.billopen); return; }
   if(d.contrib){ openContrib(d.contrib); return; }
   if(d.report){ state.reportRange=d.report; render(); return; }
+  if(d.more!==undefined){ openMore(); return; }
+  if(d.closemore!==undefined){ closeMore(); return; }
   if(d.calnav){ state.calMonth=shiftMonth(state.calMonth, +d.calnav); state.calSel=null; render(); return; }
   if(d.calday){ state.calSel=d.calday; render(); return; }
   if(d.addevent){ state.calSel=d.addevent; openForm('event'); return; }
